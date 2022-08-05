@@ -1,0 +1,6 @@
+[flake8]
+max-line-length = 100
+ignore = E203, W503
+exclude = venv
+per-file-ignores =
+    src/lead/core/__init__.py:E402,F401
