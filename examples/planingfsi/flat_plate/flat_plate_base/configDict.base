@@ -1,0 +1,46 @@
+# General Parameters
+rho   : 998.2
+g     : 9.81
+nu    : 1.0048e-6
+hWL   : 0.0
+
+Fr    : 0.5
+AOA   : 10.0
+#U : 5.0
+Lc    : 1.0
+
+wettedLengthSolver : 'broyden'
+wettedLengthMaxStepPct : 0.5
+
+# Simulation Parameters
+maxIt  : 5000
+rampIt : 0
+relaxI : 0.0
+relaxF : 1.0
+tolerance : 1e-5
+
+# Plotting Parameters
+extE   :  0.5
+extW   :  1.0
+extN   :  1.2
+extS   :  1.0
+xFSMin : -15.0
+xFSMax :  10.0
+growthRate : 1.05
+pScaleType : 'stagnation'
+pScalePct  : 0.1
+forceBasePct  : 0.05
+forceScalePct : 0.05
+
+inputDictDir           : './inputDict'
+meshDir                : './mesh'
+meshDictDir            : './meshDict'
+pressureCushionDictDir : './pressureCushion'
+bodyDictDir            : './bodyDict'
+
+shearCalc : False
+writeInterval : 50
+
+plotSave  : False
+plotShow  : False
+plotWatch : False

@@ -1,0 +1,17 @@
+substructureName  : 'plate'
+substructureType  : 'rigid'
+hasPlaningSurface : True
+
+# Fluid Parameters
+Nfl    :  40
+pointSpacing : 'cosine'
+
+kuttaPressure : 0.0
+
+initialLength : 0.48
+minimumLength : 0.01
+structInterpType : 'cubic'
+structExtrap : True
+
+# Simulation Parameters
+sSepPctStart : 0.5
