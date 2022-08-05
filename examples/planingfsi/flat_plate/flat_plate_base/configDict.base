@@ -24,9 +24,9 @@ extE   :  0.5
 extW   :  1.0
 extN   :  1.2
 extS   :  1.0
-xFSMin : -15.0
-xFSMax :  10.0
-growthRate : 1.05
+xFSMin : -10.0
+xFSMax :  5.0
+growthRate : 1.02
 pScaleType : 'stagnation'
 pScalePct  : 0.1
 forceBasePct  : 0.05
