@@ -9,6 +9,7 @@ license = "MIT"
 python = ">=3.9,<3.11"
 
 [tool.poetry.dev-dependencies]
+mypy = "^0.971"
 planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "dev" }
 
 [build-system]
