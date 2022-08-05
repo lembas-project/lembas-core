@@ -33,7 +33,6 @@ repos:
   rev: 4.0.1
   hooks:
   - id: flake8
-    args: [--ignore, 'E203,E501,W503']
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v0.961
   hooks:
