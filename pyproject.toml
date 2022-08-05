@@ -6,9 +6,10 @@ authors = ["Your Name <you@example.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.11"
 
 [tool.poetry.dev-dependencies]
+planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "dev" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
