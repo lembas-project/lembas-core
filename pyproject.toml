@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "lead-core"
+version = "0.1.0.dev0"
+description = "Lifecycle Engineering Analysis and Design"
+authors = [
+    "Matt Kramer <mkramer@anaconda.com>",
+    "Jose Mesa <jmesa@anaconda.com>",
+]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.11"
+
+# Optional dependencies for examples
+planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "dev", optional = true }
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.extras]
+examples = ["planingfsi"]
+
+[tool.isort]
+profile = "black"
+force_single_line = true
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
