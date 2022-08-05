@@ -11,9 +11,13 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = ">=3.9,<3.11"
 
+# Optional dependencies for examples
+planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "dev", optional = true }
+
 [tool.poetry.dev-dependencies]
-mypy = "^0.971"
-planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "dev" }
+
+[tool.poetry.extras]
+examples = ["planingfsi"]
 
 [tool.isort]
 profile = "black"
