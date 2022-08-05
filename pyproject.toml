@@ -12,12 +12,13 @@ license = "MIT"
 python = ">=3.9,<3.11"
 
 # Optional dependencies for examples
+pandas = { version = "^1.4.3", optional = true }
 planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "dev", optional = true }
 
 [tool.poetry.dev-dependencies]
 
 [tool.poetry.extras]
-examples = ["planingfsi"]
+examples = ["planingfsi", "pandas"]
 
 [tool.isort]
 profile = "black"
