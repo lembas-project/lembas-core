@@ -1,4 +1,5 @@
 import dataclasses
+import itertools
 import shutil
 import subprocess
 from pathlib import Path
@@ -52,21 +53,30 @@ def run_planingfsi(froude_num: float, angle_of_attack: float) -> PlaningPlateRes
     )
 
 
+class PlaningPlateCase:
+    def __init__(self, froude_num: float, aoa: float):
+        self.froude_num = froude_num
+        self.aoa = aoa
+
+    def run(self) -> PlaningPlateResults:
+        return run_planingfsi(self.froude_num, self.aoa)
+
+
 if __name__ == "__main__":
     froude_nums = numpy.linspace(0.5, 3.0, 7)
     AOA_nums = numpy.linspace(5.0, 15.0, 5)
 
     all_results = []
 
-    for froude_num in froude_nums:
-        for aoa in AOA_nums:
-            results = run_planingfsi(froude_num, aoa)
-            results_dict = dataclasses.asdict(results)
-            results_dict.update({"froude_num": froude_num, "aoa": aoa})
-            all_results.append(results_dict)
+    for froude_num, aoa in itertools.product(froude_nums, AOA_nums):
+        case = PlaningPlateCase(froude_num, aoa)
+        results = case.run()
+
+        results_dict = dataclasses.asdict(results)
+        results_dict.update({"froude_num": froude_num, "aoa": aoa})
+        all_results.append(results_dict)
 
     df = pandas.DataFrame.from_records(all_results)
-
     df.plot.scatter(x="froude_num", y="lift", c="aoa")
 
     pyplot.show()
