@@ -55,8 +55,8 @@ _builtin_type = type
 
 
 class InputAttribute:
-    _type: type | None
     _name: str
+    _type: type | None
     _min_value: float | None
     _max_value: float | None
 
