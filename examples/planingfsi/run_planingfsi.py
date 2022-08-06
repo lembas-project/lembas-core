@@ -88,12 +88,14 @@ class InputAttribute:
 
         if self._min_value is not None and value < self._min_value:
             raise ValueError(
-                f"Specified value less than minimum for attribute '{self._name}': ({value} < {self._min_value})"  # noqa: E501
+                "Specified value less than minimum for attribute "
+                f"'{self._name}': ({value} < {self._min_value})"
             )
 
         if self._max_value is not None and value > self._max_value:
             raise ValueError(
-                f"Specified value exceeds maximum for attribute '{self._name}': ({value} > {self._max_value})"  # noqa: E501
+                "Specified value exceeds maximum for attribute "
+                f"'{self._name}': ({value} > {self._max_value})"
             )
 
         instance.__dict__[self._name] = value
