@@ -95,7 +95,17 @@ class PlaningPlateCase(Case):
         self._run_planingfsi()
 
 
+def plot_summary_results(cases: list[PlaningPlateCase]) -> None:
+    """Create a plot of the lift from all of the cases that were run."""
+    df = pandas.DataFrame.from_records(
+        case.results_dict | case.inputs_dict for case in cases
+    )
+    df.plot.scatter(x="froude_num", y="lift", c="angle_of_attack", cmap="inferno")
+    pyplot.show()
+
+
 def main() -> None:
+    # Generate a list of cases
     froude_nums = numpy.arange(0.5, 3.0, 0.25)
     AOA_nums = numpy.arange(5.0, 15.1, 1.25)
 
@@ -104,15 +114,12 @@ def main() -> None:
         for froude_num, aoa in itertools.product(froude_nums, AOA_nums)
     ]
 
+    # Run the cases
     for case in cases:
         case.run()
 
-    df = pandas.DataFrame.from_records(
-        case.results_dict | case.inputs_dict for case in cases
-    )
-    df.plot.scatter(x="froude_num", y="lift", c="angle_of_attack", cmap="inferno")
-
-    pyplot.show()
+    # Post-process the cases
+    plot_summary_results(cases)
 
 
 if __name__ == "__main__":
