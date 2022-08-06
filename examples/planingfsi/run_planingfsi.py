@@ -155,8 +155,8 @@ class PlaningPlateCase(Case):
 
 
 def main() -> None:
-    froude_nums = numpy.linspace(0.5, 3.0, 7)
-    AOA_nums = numpy.linspace(5.0, 15.0, 5)
+    froude_nums = numpy.arange(0.5, 3.0, 0.25)
+    AOA_nums = numpy.arange(5.0, 15.1, 2.5)
 
     all_results = []
 
@@ -169,7 +169,7 @@ def main() -> None:
         all_results.append(results_dict)
 
     df = pandas.DataFrame.from_records(all_results)
-    df.plot.scatter(x="froude_num", y="lift", c="aoa")
+    df.plot.scatter(x="froude_num", y="lift", c="aoa", cmap="inferno")
 
     pyplot.show()
 
