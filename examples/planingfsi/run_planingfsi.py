@@ -147,13 +147,18 @@ class PlaningPlateCase(Case):
         )
 
     @cached_property
+    def inputs_dict(self) -> dict[str, Any]:
+        """A dictionary of values for each `InputAttribute`."""
+        inputs_dict = {}
+        for name, attr in self.__class__.__dict__.items():
+            if isinstance(attr, InputAttribute):
+                inputs_dict[name] = getattr(self, name)
+        return inputs_dict
+
+    @cached_property
     def results_dict(self) -> dict[str, Any]:
         """A combined dictionary of results & inputs."""
-        results_dict = dataclasses.asdict(self.results)
-        results_dict.update(
-            {"froude_num": self.froude_num, "aoa": self.angle_of_attack}
-        )
-        return results_dict
+        return dataclasses.asdict(self.results)
 
     @step(condition=lambda self: not (self.case_dir / "configDict").exists())
     def _create_input_files(self) -> None:
@@ -193,8 +198,10 @@ def main() -> None:
     for case in cases:
         case.run()
 
-    df = pandas.DataFrame.from_records(case.results_dict for case in cases)
-    df.plot.scatter(x="froude_num", y="lift", c="aoa", cmap="inferno")
+    df = pandas.DataFrame.from_records(
+        case.results_dict | case.inputs_dict for case in cases
+    )
+    df.plot.scatter(x="froude_num", y="lift", c="angle_of_attack", cmap="inferno")
 
     pyplot.show()
 
