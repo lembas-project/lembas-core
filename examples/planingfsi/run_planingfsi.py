@@ -15,9 +15,6 @@ import pandas
 from matplotlib import pyplot
 from planingfsi.dictionary import load_dict_from_file
 
-MIN_FROUDE_NUM = 0.2
-MAX_FROUDE_NUM = 3.0
-
 FLAT_PLATE_ROOT = Path(__file__).parent / "flat_plate"
 
 
@@ -60,8 +57,17 @@ _builtin_type = type
 class InputAttribute:
     _type: type | None
     _name: str
+    _min_value: float | None
+    _max_value: float | None
 
-    def __init__(self, *, type: type | None = None, default: Any = _NoDefault):
+    def __init__(
+        self,
+        *,
+        type: type | None = None,
+        default: Any = _NoDefault,
+        min: float | None = None,
+        max: float | None = None,
+    ):
         if type is not None:
             self._type = type
         elif default != _NoDefault:
@@ -70,6 +76,8 @@ class InputAttribute:
             self._type = None
 
         self._default = default
+        self._min_value = min
+        self._max_value = max
 
     def __set_name__(self, owner: type[Case], name: str) -> None:
         self._name = name
@@ -77,6 +85,17 @@ class InputAttribute:
     def __set__(self, instance: object, value: Any) -> None:
         if self._type is not None:
             value = self._type(value)
+
+        if self._min_value is not None and value < self._min_value:
+            raise ValueError(
+                f"Specified value less than minimum for attribute '{self._name}': ({value} < {self._min_value})"  # noqa: E501
+            )
+
+        if self._max_value is not None and value > self._max_value:
+            raise ValueError(
+                f"Specified value exceeds maximum for attribute '{self._name}': ({value} > {self._max_value})"  # noqa: E501
+            )
+
         instance.__dict__[self._name] = value
 
     def __get__(self, instance: Case, owner: type[Case]) -> Any:
@@ -98,7 +117,7 @@ class InputAttribute:
 
 
 class PlaningPlateCase(Case):
-    froude_num = InputAttribute(type=float)
+    froude_num = InputAttribute(type=float, min=0.2, max=3.0)
     angle_of_attack = InputAttribute(type=float)
 
     @property
@@ -155,11 +174,6 @@ class PlaningPlateCase(Case):
         subprocess.run(["planingfsi", "run"], cwd=str(self.case_dir))
 
     def run(self) -> None:
-        if not (MIN_FROUDE_NUM <= self.froude_num <= MAX_FROUDE_NUM):
-            raise ValueError(
-                "Input Froude number must be in the range 0.2 <= Fr <= 3.0"
-            )
-
         self._create_input_files()
         self._generate_mesh()
         self._run_planingfsi()
