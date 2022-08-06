@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import dataclasses
+import functools
 import itertools
 import shutil
 import subprocess
+from collections.abc import Callable
 from functools import cached_property
 from pathlib import Path
+from typing import Any
 
 import numpy
 import pandas
@@ -23,7 +28,25 @@ class PlaningPlateResults:
     moment: float
 
 
-class PlaningPlateCase:
+class Case:
+    """Base case for all cases."""
+
+
+def step(condition: Callable[[Any], bool]) -> Any:
+    def decorator(f: Callable[[Case], None]) -> Callable[[Case], None]:
+        @functools.wraps(f)
+        def new_f(self: Case) -> None:
+            if condition(self):
+                return f(self)
+            else:
+                return None
+
+        return new_f
+
+    return decorator
+
+
+class PlaningPlateCase(Case):
     def __init__(self, froude_num: float, angle_of_attack: float):
         self.froude_num = froude_num
         self.angle_of_attack = angle_of_attack
@@ -50,15 +73,24 @@ class PlaningPlateCase:
             moment=results_dict["Moment"],
         )
 
-    def _execute(self):
-        """Copies base case, sets parameters, and actually runs `planingfsi` for the case."""
+    @step(condition=lambda self: not (self.case_dir / "configDict").exists())
+    def _create_input_files(self) -> None:
+        print("Creating input files")
         case_dir_base = FLAT_PLATE_ROOT / "flat_plate_base"
         shutil.copytree(case_dir_base, self.case_dir)
         with (self.case_dir / "configDict").open("w") as fp:
             fp.write("baseDict: './configDict.base'\n")
             fp.write(f"Fr: {self.froude_num}\n")
             fp.write(f"AOA: {self.angle_of_attack}\n")
+
+    @step(condition=lambda self: not (self.case_dir / "mesh").exists())
+    def _generate_mesh(self) -> None:
+        print("Generating mesh")
         subprocess.run(["planingfsi", "mesh"], cwd=str(self.case_dir))
+
+    @step(condition=lambda self: not (self.case_dir / "0").exists())
+    def _run_planingfsi(self) -> None:
+        print("Running planingfsi")
         subprocess.run(["planingfsi", "run"], cwd=str(self.case_dir))
 
     def run(self) -> None:
@@ -67,8 +99,9 @@ class PlaningPlateCase:
                 "Input Froude number must be in the range 0.2 <= Fr <= 3.0"
             )
 
-        if not self.case_dir.exists():
-            self._execute()
+        self._create_input_files()
+        self._generate_mesh()
+        self._run_planingfsi()
 
 
 def main() -> None:
