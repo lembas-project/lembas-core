@@ -7,6 +7,9 @@ authors = [
     "Jose Mesa <jmesa@anaconda.com>",
 ]
 license = "MIT"
+packages = [
+    { include = "lead", from = "src" },
+]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.11"
