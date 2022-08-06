@@ -175,7 +175,7 @@ class PlaningPlateCase(Case):
         print("Generating mesh")
         subprocess.run(["planingfsi", "mesh"], cwd=str(self.case_dir))
 
-    @step(condition=lambda self: not (self.case_dir / "0").exists())
+    @step(condition=lambda self: not list(self.case_dir.glob("[0-9]*")))
     def _run_planingfsi(self) -> None:
         print("Running planingfsi")
         subprocess.run(["planingfsi", "run"], cwd=str(self.case_dir))
@@ -188,7 +188,7 @@ class PlaningPlateCase(Case):
 
 def main() -> None:
     froude_nums = numpy.arange(0.5, 3.0, 0.25)
-    AOA_nums = numpy.arange(5.0, 15.1, 2.5)
+    AOA_nums = numpy.arange(5.0, 15.1, 1.25)
 
     cases = [
         PlaningPlateCase(froude_num=froude_num, angle_of_attack=aoa)
