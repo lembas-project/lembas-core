@@ -104,8 +104,10 @@ class PlaningPlateCase(Case):
     @property
     def case_dir(self) -> Path:
         """The directory in which to run the case."""
-        return FLAT_PLATE_ROOT / Path(
-            f"Fr={self.froude_num:0.1f}_AOA={self.angle_of_attack:0.1f}"
+        return Path(
+            FLAT_PLATE_ROOT,
+            "cases",
+            f"Fr={self.froude_num:0.2f}_AOA={self.angle_of_attack:0.2f}",
         )
 
     @cached_property
