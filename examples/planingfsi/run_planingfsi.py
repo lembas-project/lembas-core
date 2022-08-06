@@ -125,6 +125,15 @@ class PlaningPlateCase(Case):
             moment=results_dict["Moment"],
         )
 
+    @cached_property
+    def results_dict(self) -> dict[str, Any]:
+        """A combined dictionary of results & inputs."""
+        results_dict = dataclasses.asdict(self.results)
+        results_dict.update(
+            {"froude_num": self.froude_num, "aoa": self.angle_of_attack}
+        )
+        return results_dict
+
     @step(condition=lambda self: not (self.case_dir / "configDict").exists())
     def _create_input_files(self) -> None:
         print("Creating input files")
@@ -160,17 +169,15 @@ def main() -> None:
     froude_nums = numpy.arange(0.5, 3.0, 0.25)
     AOA_nums = numpy.arange(5.0, 15.1, 2.5)
 
-    all_results = []
+    cases = [
+        PlaningPlateCase(froude_num=froude_num, angle_of_attack=aoa)
+        for froude_num, aoa in itertools.product(froude_nums, AOA_nums)
+    ]
 
-    for froude_num, aoa in itertools.product(froude_nums, AOA_nums):
-        case = PlaningPlateCase(froude_num=froude_num, angle_of_attack=aoa)
+    for case in cases:
         case.run()
 
-        results_dict = dataclasses.asdict(case.results)
-        results_dict.update({"froude_num": froude_num, "aoa": aoa})
-        all_results.append(results_dict)
-
-    df = pandas.DataFrame.from_records(all_results)
+    df = pandas.DataFrame.from_records(case.results_dict for case in cases)
     df.plot.scatter(x="froude_num", y="lift", c="aoa", cmap="inferno")
 
     pyplot.show()
