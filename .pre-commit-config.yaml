@@ -38,5 +38,4 @@ repos:
   rev: v0.961
   hooks:
   - id: mypy
-    stages: [push]
     additional_dependencies: [types-toml]

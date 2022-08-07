@@ -1,0 +1,14 @@
+from planingfsi.dictionary import load_dict_from_file
+
+# Create submeshes
+dict_ = load_dict_from_file('configDict')
+AOA = dict_.get('AOA', 10.0)
+
+# Create points (ID, type, params)
+mesh.add_point(1, 'rel', [ 0, 180, 0.5])
+mesh.add_point(2, 'rel', [ 0,   0, 3.0])
+
+mesh.rotate_points(0, AOA, [1, 2])
+
+mesh_fwd = mesh.add_submesh('plate')
+mesh_fwd.add_curve(1, 2, Nel=10)
