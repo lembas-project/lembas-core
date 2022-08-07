@@ -22,8 +22,6 @@ jobs:
       with:
         virtualenvs-create: true
         virtualenvs-in-project: true
-    - name: Activate virtual environment
-      run: source $VENV
     - name: Install library and dependencies
       run: poetry install
     - name: Test with pytest
