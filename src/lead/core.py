@@ -31,9 +31,9 @@ class InputParameter:
         elif default != _NoDefault:
             self._type = _builtin_type(default)
         else:
-            # TODO: Consider making this an exception instead.
-            #       The type should either be explicitly provided or inferred from default.
-            self._type = None
+            raise TypeError(
+                "An 'InputParameter' must either explicitly set the type, or have a default value to infer it from."
+            )
 
         self._default = default
         self._min_value = min
@@ -82,7 +82,7 @@ class InputParameter:
 #       in the decorator definition for condition
 
 
-def step(condition: Callable[[Case], bool] | None = None) -> Any:  # type: ignore
+def step(condition: Callable[[Any], bool] | None = None) -> Any:
     """A decorator to define steps to be performed when running a `Case`.
 
     The step should not return a value.

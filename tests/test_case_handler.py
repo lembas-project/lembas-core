@@ -12,7 +12,7 @@ from lead import step
 class MyCase(Case):
     my_param = InputParameter(type=float, min=2.0, max=5.0)
     param_with_default = InputParameter(default=10.0)
-    required_param = InputParameter()
+    required_param = InputParameter(type=float)
 
     @step(condition=lambda self: self.my_param > 4)
     def change_param_with_default(self) -> None:
@@ -32,6 +32,11 @@ def test_case_parameter_required_raises_exception(case: MyCase) -> None:
     """A parameter with no default that is not set raises an exception when accessed."""
     with pytest.raises(AttributeError):
         _ = case.required_param
+
+
+def test_case_parameter_type_required() -> None:
+    with pytest.raises(TypeError):
+        InputParameter()
 
 
 @pytest.mark.parametrize("input_value", [3.0, 3, "3", "3.0"])
