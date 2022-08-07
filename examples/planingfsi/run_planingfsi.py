@@ -20,7 +20,7 @@ from matplotlib import pyplot
 from planingfsi.dictionary import load_dict_from_file
 
 from lead import Case
-from lead import InputAttribute
+from lead import InputParameter
 from lead import step
 
 FLAT_PLATE_ROOT = Path(__file__).parent / "flat_plate"
@@ -34,8 +34,8 @@ class PlaningPlateResults:
 
 
 class PlaningPlateCase(Case):
-    froude_num = InputAttribute(type=float, min=0.2, max=3.0)
-    angle_of_attack = InputAttribute(type=float)
+    froude_num = InputParameter(type=float, min=0.2, max=3.0)
+    angle_of_attack = InputParameter(type=float)
 
     @property
     def case_dir(self) -> Path:
@@ -66,7 +66,7 @@ class PlaningPlateCase(Case):
         """A dictionary of values for each `InputAttribute`."""
         inputs_dict = {}
         for name, attr in self.__class__.__dict__.items():
-            if isinstance(attr, InputAttribute):
+            if isinstance(attr, InputParameter):
                 inputs_dict[name] = getattr(self, name)
         return inputs_dict
 

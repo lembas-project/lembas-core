@@ -34,7 +34,7 @@ class _NoDefault:
 _builtin_type = type
 
 
-class InputAttribute:
+class InputParameter:
     _name: str
     _type: type | None
     _min_value: float | None
