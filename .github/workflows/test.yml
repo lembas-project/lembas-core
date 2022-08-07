@@ -1,4 +1,4 @@
-name: Run Python Tests
+name: Run Tests
 
 on:
   push:
@@ -66,7 +66,7 @@ jobs:
         poetry run pytest \
           --junitxml=./test-reports/junit.xml \
           --cov-report xml:./test-reports/coverage.xml \
-          --cov lead \
+          --cov lembas \
           tests
     - name: Publish code coverage
       run: |

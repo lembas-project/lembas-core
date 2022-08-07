@@ -1,4 +1,4 @@
-"""An example using `lead` to perform a parameter sweep for a single flat planing plate.
+"""An example using `lembas` to perform a parameter sweep for a single flat planing plate.
 
 Each case is run with `planingfsi` and is characterized by the Froude number
 (flow speed) and angle of attack.
