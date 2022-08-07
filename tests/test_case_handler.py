@@ -35,13 +35,13 @@ def test_case_parameter_required_raises_exception(case: MyCase) -> None:
 
 
 @pytest.mark.parametrize("input_value", [3.0, 3, "3", "3.0"])
-def test_case_handler_parameter_type_conversion(case: MyCase, input_value: Any) -> None:
+def test_case_parameter_type_conversion(case: MyCase, input_value: Any) -> None:
     """The value is coerced to the proper type."""
     assert case.my_param == pytest.approx(3.0)
 
 
 @pytest.mark.parametrize("input_value", [1.0, 6.0])
-def test_case_handler_parameter_bounds_raises_exception(
+def test_case_parameter_bounds_raises_exception(
     case: MyCase, input_value: float
 ) -> None:
     """An exception is raised when attempting to set the value out of bounds."""
