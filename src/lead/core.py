@@ -5,28 +5,6 @@ from collections.abc import Callable
 from typing import Any
 
 
-class Case:
-    """Base case for all cases."""
-
-    def __init__(self, **kwargs: Any):
-        for name, value in kwargs.items():
-            setattr(self, name, value)
-
-
-def step(condition: Callable[[Any], bool]) -> Any:
-    def decorator(f: Callable[[Case], None]) -> Callable[[Case], None]:
-        @functools.wraps(f)
-        def new_f(self: Case) -> None:
-            if condition(self):
-                return f(self)
-            else:
-                return None
-
-        return new_f
-
-    return decorator
-
-
 class _NoDefault:
     """Used as a sentinel to indicate lack of a default value for an `InputAttribute`."""
 
@@ -96,3 +74,25 @@ class InputParameter:
                     "has no default value and must be specified explicitly"
                 )
             return self._default
+
+
+def step(condition: Callable[[Any], bool]) -> Any:
+    def decorator(f: Callable[[Case], None]) -> Callable[[Case], None]:
+        @functools.wraps(f)
+        def new_f(self: Case) -> None:
+            if condition(self):
+                return f(self)
+            else:
+                return None
+
+        return new_f
+
+    return decorator
+
+
+class Case:
+    """Base case for all cases."""
+
+    def __init__(self, **kwargs: Any):
+        for name, value in kwargs.items():
+            setattr(self, name, value)
