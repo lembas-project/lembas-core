@@ -1,0 +1,68 @@
+name: Run Python Tests
+
+on: [pull_request]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.9', '3.10']
+        include:
+        - python-version: '3.11.0-beta.5'
+          os: ubuntu-latest
+          experimental: true
+    runs-on: ${{ matrix.os }}
+    steps:
+    # ----------------------------------------------
+    # check-out repo and set-up python
+    # ----------------------------------------------
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Set up python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    # ----------------------------------------------
+    # install & configure poetry
+    # ----------------------------------------------
+    - name: Install Poetry
+      uses: snok/install-poetry@v1.1.6
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+    # ----------------------------------------------
+    # load cached venv if cache exists
+    # ----------------------------------------------
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v2
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/pyproject.toml') }}
+    # ----------------------------------------------
+    # install dependencies if cache does not exist
+    # ----------------------------------------------
+    - name: Install library and dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --no-interaction --extras ci --no-root
+    #----------------------------------------------
+    # install root project if required so
+    # project doesn't require cache
+    #----------------------------------------------
+    - name: Install library
+      run: poetry install --no-interaction
+    # ----------------------------------------------
+    # run test suite
+    # ----------------------------------------------
+    - name: Test with pytest
+      run: |
+        poetry run pytest \
+          --junitxml=./test-reports/junit.xml \
+          --cov-report xml:./test-reports/coverage.xml \
+          --cov lead \
+          tests
+    - name: Publish code coverage
+      run: |
+        poetry run codecov
