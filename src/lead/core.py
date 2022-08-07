@@ -31,6 +31,8 @@ class InputParameter:
         elif default != _NoDefault:
             self._type = _builtin_type(default)
         else:
+            # TODO: Consider making this an exception instead.
+            #       The type should either be explicitly provided or inferred from default.
             self._type = None
 
         self._default = default
