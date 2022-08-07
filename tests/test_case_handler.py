@@ -6,12 +6,17 @@ import pytest
 
 from lead import Case
 from lead import InputParameter
+from lead import step
 
 
 class MyCase(Case):
     my_param = InputParameter(type=float, min=2.0, max=5.0)
     param_with_default = InputParameter(default=10.0)
     required_param = InputParameter()
+
+    @step(condition=lambda self: self.my_param > 4)
+    def change_param_with_default(self) -> None:
+        self.param_with_default = 5.0
 
 
 @pytest.fixture()
@@ -42,3 +47,16 @@ def test_case_handler_parameter_bounds_raises_exception(
     """An exception is raised when attempting to set the value out of bounds."""
     with pytest.raises(ValueError):
         case.my_param = input_value
+
+
+def test_case_step_condition_is_not_met(case: MyCase) -> None:
+    """If we don't set the case.my_param, the step shouldn't run."""
+    case.change_param_with_default()
+    assert case.param_with_default == pytest.approx(10.0)
+
+
+def test_case_step_condition_is_met(case: MyCase) -> None:
+    """If we do set the case.my_param explicitly, the step should run."""
+    case.my_param = 5.0
+    case.change_param_with_default()
+    assert case.param_with_default == pytest.approx(5.0)
