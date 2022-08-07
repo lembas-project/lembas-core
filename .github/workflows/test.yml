@@ -42,7 +42,7 @@ jobs:
     # ----------------------------------------------
     - name: Install library and dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --no-root
+      run: poetry install --no-interaction --extras ci --no-root
     #----------------------------------------------
     # install root project if required so
     # project doesn't require cache
