@@ -19,6 +19,7 @@ pandas = { version = "^1.4.3", optional = true }
 planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "dev", optional = true }
 
 [tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
 
 [tool.poetry.extras]
 examples = ["planingfsi", "pandas"]
