@@ -4,9 +4,9 @@ from typing import Any
 
 import pytest
 
-from lead import Case
-from lead import InputParameter
-from lead import step
+from lembas import Case
+from lembas import InputParameter
+from lembas import step
 
 
 class MyCase(Case):

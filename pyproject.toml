@@ -1,22 +1,22 @@
 [tool.poetry]
-name = "lead-core"
+name = "lembas"
 version = "0.1.0.dev0"
-description = "Lifecycle Engineering Analysis and Design"
+description = "Lifecycle Engineering Model-Based Analysis System"
 authors = [
     "Matt Kramer <mkramer@anaconda.com>",
     "Jose Mesa <jmesa@anaconda.com>",
 ]
 license = "MIT"
 packages = [
-    { include = "lead", from = "src" },
+    { include = "lembas", from = "src" },
 ]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
 
 # Optional dependencies for examples
-pandas = { version = "^1.4.3", optional = true }
-planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "dev", optional = true }
+#pandas = { version = "^1.4.3", optional = true }
+#planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "dev", optional = true }
 
 # Optional dependencies for ci pipeline
 codecov = {version = "^2.1.12", optional = true}
@@ -26,7 +26,7 @@ pytest = "^7.1.2"
 pytest-cov = "^3.0.0"
 
 [tool.poetry.extras]
-examples = ["planingfsi", "pandas"]
+#examples = ["planingfsi", "pandas"]
 ci = ["codecov"]
 
 [tool.isort]
