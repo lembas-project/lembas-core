@@ -61,6 +61,4 @@ jobs:
           tests
     - name: Publish code coverage
       run: |
-        poetry run codecov -t $CODECOV_TOKEN
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        poetry run codecov
