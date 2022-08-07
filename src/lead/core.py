@@ -78,7 +78,11 @@ class InputParameter:
             return self._default
 
 
-def step(condition: Callable[[Case], bool] | None = None) -> Any:
+# TODO: I can't figure out how to properly resolve type errors when the argument is `Case`
+#       in the decorator definition for condition
+
+
+def step(condition: Callable[[Case], bool] | None = None) -> Any:  # type: ignore
     """A decorator to define steps to be performed when running a `Case`.
 
     The step should not return a value.
