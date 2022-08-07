@@ -76,11 +76,30 @@ class InputParameter:
             return self._default
 
 
-def step(condition: Callable[[Any], bool]) -> Any:
+def step(condition: Callable[[Case], bool] | None = None) -> Any:
+    """A decorator to define steps to be performed when running a `Case`.
+
+    The step should not return a value.
+
+    Args:
+        condition: an optional callable which can be used to determine whether the step should run.
+            It will receive the `Case` instance as its only argument, and must return a boolean
+            which, if True, the step will run. Otherwise, it will be skipped.
+
+    Usage:
+        ```
+        class MyCase(Case):
+            @step(condition=lambda case: case.case_dir.exists())
+            def some_analysis_step(self):
+                # do something
+        ```
+
+    """
+
     def decorator(f: Callable[[Case], None]) -> Callable[[Case], None]:
         @functools.wraps(f)
         def new_f(self: Case) -> None:
-            if condition(self):
+            if condition is not None and condition(self):
                 return f(self)
             else:
                 return None
