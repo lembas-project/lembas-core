@@ -1,3 +1,9 @@
+"""An example using `lead` to perform a parameter sweep for a single flat planing plate.
+
+Each case is run with `planingfsi` and is characterized by the Froude number
+(flow speed) and angle of attack.
+
+"""
 from __future__ import annotations
 
 import dataclasses
@@ -96,7 +102,7 @@ class PlaningPlateCase(Case):
 
 
 def plot_summary_results(cases: list[PlaningPlateCase]) -> None:
-    """Create a plot of the lift from all of the cases that were run."""
+    """Create a plot of the lift from all the cases that were run."""
     df = pandas.DataFrame.from_records(
         case.results_dict | case.inputs_dict for case in cases
     )
@@ -107,11 +113,11 @@ def plot_summary_results(cases: list[PlaningPlateCase]) -> None:
 def main() -> None:
     # Generate a list of cases
     froude_nums = numpy.arange(0.5, 3.0, 0.25)
-    AOA_nums = numpy.arange(5.0, 15.1, 1.25)
+    angles_of_attack = numpy.arange(5.0, 15.1, 1.25)
 
     cases = [
         PlaningPlateCase(froude_num=froude_num, angle_of_attack=aoa)
-        for froude_num, aoa in itertools.product(froude_nums, AOA_nums)
+        for froude_num, aoa in itertools.product(froude_nums, angles_of_attack)
     ]
 
     # Run the cases
