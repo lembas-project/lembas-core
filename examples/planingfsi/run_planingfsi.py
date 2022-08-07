@@ -19,9 +19,9 @@ import pandas
 from matplotlib import pyplot
 from planingfsi.dictionary import load_dict_from_file
 
-from lead import Case
-from lead import InputParameter
-from lead import step
+from lembas import Case
+from lembas import InputParameter
+from lembas import step
 
 FLAT_PLATE_ROOT = Path(__file__).parent / "flat_plate"
 
