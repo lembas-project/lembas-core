@@ -2,7 +2,7 @@
 
 ## Setting up your dev environment
 
-`lead` uses `poetry` for dependency management.
+`lembas-core` uses `poetry` for dependency management.
 Please see the [Poetry install guide](https://python-poetry.org/docs/#installation) for notes on installing `poetry`.
 
 Once you have `poetry` installed, you can run `poetry install` to setup a virtual environment and install the dev dependencies.
