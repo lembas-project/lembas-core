@@ -122,6 +122,9 @@ class Case:
         for name, value in kwargs.items():
             setattr(self, name, value)
 
+    def run(self) -> None:
+        raise NotImplementedError()
+
 
 class CaseList:
     """A generic collection of `Case` objects, and utility methods to run them."""
@@ -141,6 +144,11 @@ class CaseList:
         """
         self._cases.append(case)
         return case
+
+    def run_all(self) -> None:
+        """Run all the cases."""
+        for case in self._cases:
+            case.run()
 
     def __contains__(self, item: Case) -> bool:
         return item in self._cases

@@ -14,10 +14,14 @@ class MyCase(Case):
     my_param = InputParameter(type=float, min=2.0, max=5.0)
     param_with_default = InputParameter(default=10.0)
     required_param = InputParameter(type=float)
+    has_been_run = InputParameter(default=False)
 
     @step(condition=lambda self: self.my_param > 4)
     def change_param_with_default(self) -> None:
         self.param_with_default = 5.0
+
+    def run(self) -> None:
+        self.has_been_run = True
 
 
 @pytest.fixture()
@@ -76,10 +80,16 @@ def case_list() -> CaseList:
 class TestCaseList:
     """Tests for the `lembas.core.CaseList` class."""
 
-    def test_add_case_returns_case(self, case_list: CaseList, case: Case) -> None:
+    def test_add_case_returns_case(self, case_list: CaseList, case: MyCase) -> None:
         added_case = case_list.add(case)
         assert added_case is case
 
-    def test_add_case_in(self, case_list: CaseList, case: Case) -> None:
+    def test_add_case_in(self, case_list: CaseList, case: MyCase) -> None:
         case_list.add(case)
         assert case in case_list
+
+    def test_run_all_cases(self, case_list: CaseList, case: MyCase) -> None:
+        case_list.add(case)
+        assert not case.has_been_run
+        case_list.run_all()
+        assert case.has_been_run
