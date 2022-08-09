@@ -70,5 +70,6 @@ jobs:
           --cov tests \
           tests
     - name: Publish code coverage
+      continue-on-error: true
       run: |
         poetry run codecov
