@@ -22,6 +22,7 @@ from planingfsi.fe.felib import Node
 from planingfsi.fe.substructure import Substructure
 
 from lembas import Case
+from lembas import CaseList
 from lembas import InputParameter
 from lembas import step
 
@@ -119,7 +120,7 @@ class HydrostaticDamCase(Case):
         simulation.run()
 
 
-def plot_summary_results(cases: list[HydrostaticDamCase]) -> None:
+def plot_summary_results(cases: CaseList[HydrostaticDamCase]) -> None:
     fig, ax = plt.subplots(1, 2, figsize=(10, 4))
     df = pandas.DataFrame.from_records(
         case.inputs_dict | case.results_dict for case in cases
@@ -144,11 +145,10 @@ def plot_summary_results(cases: list[HydrostaticDamCase]) -> None:
 
 
 def main() -> None:
-    cases = [
+    cases = CaseList(
         HydrostaticDamCase(reference_head=h_ref) for h_ref in np.arange(0.8, 10.1, 0.2)
-    ]
-    for case in cases:
-        case.run()
+    )
+    cases.run_all()
 
     plot_summary_results(cases)
 
