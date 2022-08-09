@@ -7,6 +7,7 @@ import pytest
 from lembas import Case
 from lembas import InputParameter
 from lembas import step
+from lembas.core import CaseList
 
 
 class MyCase(Case):
@@ -65,3 +66,20 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
     case.my_param = 5.0
     case.change_param_with_default()
     assert case.param_with_default == pytest.approx(5.0)
+
+
+@pytest.fixture()
+def case_list() -> CaseList:
+    return CaseList()
+
+
+class TestCaseList:
+    """Tests for the `lembas.core.CaseList` class."""
+
+    def test_add_case_returns_case(self, case_list: CaseList, case: Case) -> None:
+        added_case = case_list.add(case)
+        assert added_case is case
+
+    def test_add_case_in(self, case_list: CaseList, case: Case) -> None:
+        case_list.add(case)
+        assert case in case_list

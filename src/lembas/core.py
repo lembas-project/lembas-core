@@ -121,3 +121,26 @@ class Case:
     def __init__(self, **kwargs: Any):
         for name, value in kwargs.items():
             setattr(self, name, value)
+
+
+class CaseList:
+    """A generic collection of `Case` objects, and utility methods to run them."""
+
+    def __init__(self, cases: list[Case] | None = None):
+        self._cases: list[Case] = cases or []
+
+    def add(self, case: Case) -> Case:
+        """Add a case to the list:
+
+        Args:
+            case: The case to add.
+
+        Returns:
+            The case that was added.
+
+        """
+        self._cases.append(case)
+        return case
+
+    def __contains__(self, item: Case) -> bool:
+        return item in self._cases
