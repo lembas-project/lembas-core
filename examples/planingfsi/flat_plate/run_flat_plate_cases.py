@@ -23,7 +23,7 @@ from lembas import Case
 from lembas import InputParameter
 from lembas import step
 
-FLAT_PLATE_ROOT = Path(__file__).parent / "flat_plate"
+FLAT_PLATE_ROOT = Path(__file__).parent
 
 
 @dataclasses.dataclass
