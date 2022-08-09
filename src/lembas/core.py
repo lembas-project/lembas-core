@@ -154,11 +154,11 @@ class CaseList(Generic[TCase]):
 
     def run_all(self) -> None:
         """Run all the cases."""
-        for case in self:
+        for case in self._cases:
             case.run()
 
     def __contains__(self, item: TCase) -> bool:
-        return item in self
+        return item in self._cases
 
     def __len__(self) -> int:
         return len(self._cases)
