@@ -41,11 +41,11 @@ class HydrostaticDamResults:
 
 
 class HydrostaticDamCase(Case):
-    waterline_height = InputParameter(type=float)
+    reference_head = InputParameter(type=float)
 
     @property
     def case_dir(self) -> Path:
-        return BASE_DIR / "cases" / f"href={self.waterline_height:0.3f}m"
+        return BASE_DIR / "cases" / f"href={self.reference_head:0.3f}m"
 
     @cached_property
     def results(self) -> HydrostaticDamResults:
@@ -103,7 +103,7 @@ class HydrostaticDamCase(Case):
 
         # Set some global configuration values
         simulation.config.flow.froude_num = 1.0
-        simulation.config.flow.waterline_height = self.waterline_height
+        simulation.config.flow.waterline_height = self.reference_head
         simulation.config.plotting._pressure_scale_pct = 1e-8
         simulation.config.solver.max_it = 500
 
@@ -124,13 +124,14 @@ def plot_summary_results(cases: list[HydrostaticDamCase]) -> None:
     df = pandas.DataFrame.from_records(
         case.inputs_dict | case.results_dict for case in cases
     ).drop(columns="coords")
-    df.plot(x="waterline_height", y="max_height", ax=ax[0])
+    df.plot(x="reference_head", y="max_height", ax=ax[0], label="Max Dam Height [m]")
+    ax[0].set_xlabel("Reference Head [m]")
 
     lines, colors = [], []
     for i, case in enumerate(cases):
         coords_df = pandas.DataFrame.from_records(case.results_dict["coords"])
         lines.append(coords_df[["x", "y"]].to_numpy())
-        colors.append(case.waterline_height)
+        colors.append(case.reference_head)
 
     lc = LineCollection(lines)
     lc.set_array(colors)
@@ -138,14 +139,13 @@ def plot_summary_results(cases: list[HydrostaticDamCase]) -> None:
     ax[1].add_collection(lc)
     ax[1].axis("equal")
 
-    fig.colorbar(lc).set_label("Reference Waterline Height")
+    fig.colorbar(lc).set_label("Reference Head [m]")
     plt.show()
 
 
 def main() -> None:
     cases = [
-        HydrostaticDamCase(waterline_height=h_ref)
-        for h_ref in np.arange(0.8, 10.1, 0.2)
+        HydrostaticDamCase(reference_head=h_ref) for h_ref in np.arange(0.8, 10.1, 0.2)
     ]
     for case in cases:
         case.run()
