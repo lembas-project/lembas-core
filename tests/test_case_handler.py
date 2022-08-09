@@ -93,3 +93,11 @@ class TestCaseList:
         assert not case.has_been_run
         case_list.run_all()
         assert case.has_been_run
+
+    def test_build_from_iterable(self) -> None:
+        case_list = CaseList(MyCase(required_param=i) for i in range(10))
+        assert len(case_list) == 10
+
+    def test_is_iterable(self) -> None:
+        case_list = CaseList(MyCase(required_param=i) for i in range(10))
+        assert [case.required_param for case in case_list] == list(range(10))

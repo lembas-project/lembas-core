@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Iterator
 from typing import Any
+from typing import Generic
+from typing import TypeVar
 
 
 class _NoDefault:
@@ -126,13 +130,16 @@ class Case:
         raise NotImplementedError()  # pragma: nocover
 
 
-class CaseList:
+TCase = TypeVar("TCase", bound=Case)
+
+
+class CaseList(Generic[TCase]):
     """A generic collection of `Case` objects, and utility methods to run them."""
 
-    def __init__(self, cases: list[Case] | None = None):
-        self._cases: list[Case] = cases or []
+    def __init__(self, cases: Iterable[TCase] | None = None):
+        self._cases: list[TCase] = list(cases or ())
 
-    def add(self, case: Case) -> Case:
+    def add(self, case: TCase) -> TCase:
         """Add a case to the list:
 
         Args:
@@ -147,8 +154,15 @@ class CaseList:
 
     def run_all(self) -> None:
         """Run all the cases."""
-        for case in self._cases:
+        for case in self:
             case.run()
 
-    def __contains__(self, item: Case) -> bool:
-        return item in self._cases
+    def __contains__(self, item: TCase) -> bool:
+        return item in self
+
+    def __len__(self) -> int:
+        return len(self._cases)
+
+    def __iter__(self) -> Iterator[TCase]:
+        for case in self._cases:
+            yield case
