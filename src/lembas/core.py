@@ -123,7 +123,7 @@ class Case:
             setattr(self, name, value)
 
     def run(self) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
 
 class CaseList:
