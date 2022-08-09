@@ -113,7 +113,7 @@ class HydrostaticDamCase(Case):
 
 
 def plot_summary_results(cases: list[HydrostaticDamCase]) -> None:
-    fig, ax = plt.subplots(2, 1)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 4))
     df = pandas.DataFrame.from_records(
         case.inputs_dict | case.results_dict for case in cases
     ).drop(columns="coords")
