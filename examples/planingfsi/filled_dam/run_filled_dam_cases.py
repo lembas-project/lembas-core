@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 import pandas
 from matplotlib import pyplot as plt
+from matplotlib.collections import LineCollection
 from planingfsi import FlexibleSubstructure
 from planingfsi import Mesh
 from planingfsi import Simulation
@@ -117,10 +118,20 @@ def plot_summary_results(cases: list[HydrostaticDamCase]) -> None:
         case.inputs_dict | case.results_dict for case in cases
     ).drop(columns="coords")
     df.plot(x="waterline_height", y="max_height", ax=ax[0])
-    for case in cases:
+
+    lines, colors = [], []
+    for i, case in enumerate(cases):
         coords_df = pandas.DataFrame.from_records(case.results_dict["coords"])
-        coords_df.plot(x="x", y="y", ax=ax[1], label=f"{case.waterline_height:0.1f}m")
+        lines.append(coords_df[["x", "y"]].to_numpy())
+        colors.append(case.waterline_height)
+
+    lc = LineCollection(lines)
+    lc.set_array(colors)
+
+    ax[1].add_collection(lc)
     ax[1].axis("equal")
+
+    fig.colorbar(lc).set_label("Reference Waterline Height")
     plt.show()
 
 
