@@ -6,6 +6,7 @@ from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Iterator
 from typing import Any
+from typing import ClassVar
 from typing import Generic
 from typing import TypeVar
 
@@ -87,6 +88,9 @@ class InputParameter:
 #       in the decorator definition for condition
 
 
+StepMethod = Callable[["Case"], None]
+
+
 def step(condition: Callable[[Any], bool] | None = None) -> Any:
     """A decorator to define steps to be performed when running a `Case`.
 
@@ -107,13 +111,15 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
 
     """
 
-    def decorator(f: Callable[[Case], None]) -> Callable[[Case], None]:
+    def decorator(f: StepMethod) -> StepMethod:
         @functools.wraps(f)
         def new_f(self: Case) -> None:
             if condition is not None and condition(self):
                 return f(self)
             else:
                 return None
+
+        new_f.is_case_step = True  # type: ignore
 
         return new_f
 
@@ -123,12 +129,22 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
 class Case:
     """Base case for all cases."""
 
+    _steps: ClassVar[list[StepMethod]]
+
+    def __init_subclass__(cls, **kwargs: Any):
+        cls._steps = []
+        for name, attribute in cls.__dict__.items():
+            if getattr(attribute, "is_case_step", False):
+                cls._steps.append(attribute)
+
     def __init__(self, **kwargs: Any):
         for name, value in kwargs.items():
             setattr(self, name, value)
 
     def run(self) -> None:
-        raise NotImplementedError()  # pragma: nocover
+        """The default behavior is to run all of the methods decorated with `@step`."""
+        for step_method in self._steps:
+            step_method(self)
 
 
 TCase = TypeVar("TCase", bound=Case)
