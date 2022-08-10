@@ -7,16 +7,21 @@ import pytest
 from lembas import Case
 from lembas import InputParameter
 from lembas import step
+from lembas.core import CaseList
 
 
 class MyCase(Case):
     my_param = InputParameter(type=float, min=2.0, max=5.0)
     param_with_default = InputParameter(default=10.0)
     required_param = InputParameter(type=float)
+    has_been_run = InputParameter(default=False)
 
     @step(condition=lambda self: self.my_param > 4)
     def change_param_with_default(self) -> None:
         self.param_with_default = 5.0
+
+    def run(self) -> None:
+        self.has_been_run = True
 
 
 @pytest.fixture()
@@ -65,3 +70,43 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
     case.my_param = 5.0
     case.change_param_with_default()
     assert case.param_with_default == pytest.approx(5.0)
+
+
+@pytest.fixture()
+def case_list() -> CaseList:
+    return CaseList()
+
+
+class TestCaseList:
+    """Tests for the `lembas.core.CaseList` class."""
+
+    def test_add_case_returns_case(self, case_list: CaseList, case: MyCase) -> None:
+        added_case = case_list.add(case)
+        assert added_case is case
+
+    def test_add_case_in(self, case_list: CaseList, case: MyCase) -> None:
+        case_list.add(case)
+        assert case in case_list
+
+    def test_run_all_cases(self, case_list: CaseList, case: MyCase) -> None:
+        case_list.add(case)
+        assert not case.has_been_run
+        case_list.run_all()
+        assert case.has_been_run
+
+    def test_build_from_iterable(self) -> None:
+        case_list = CaseList(MyCase(required_param=i) for i in range(10))
+        assert len(case_list) == 10
+
+    def test_is_iterable(self) -> None:
+        case_list = CaseList(MyCase(required_param=i) for i in range(10))
+        assert [case.required_param for case in case_list] == list(range(10))
+
+    def test_add_param_sweep(self, case_list: CaseList) -> None:
+        case_list.add_cases_by_parameter_sweep(
+            MyCase,
+            required_param=1.0,
+            my_param=range(2, 6),
+            param_with_default=range(5),
+        )
+        assert len(case_list) == 20

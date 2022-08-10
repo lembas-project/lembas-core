@@ -7,7 +7,6 @@ Each case is run with `planingfsi` and is characterized by the Froude number
 from __future__ import annotations
 
 import dataclasses
-import itertools
 import shutil
 import subprocess
 from functools import cached_property
@@ -20,6 +19,7 @@ from matplotlib import pyplot
 from planingfsi.dictionary import load_dict_from_file
 
 from lembas import Case
+from lembas import CaseList
 from lembas import InputParameter
 from lembas import step
 
@@ -101,7 +101,7 @@ class PlaningPlateCase(Case):
         self._run_planingfsi()
 
 
-def plot_summary_results(cases: list[PlaningPlateCase]) -> None:
+def plot_summary_results(cases: CaseList[PlaningPlateCase]) -> None:
     """Create a plot of the lift from all the cases that were run."""
     df = pandas.DataFrame.from_records(
         case.results_dict | case.inputs_dict for case in cases
@@ -115,14 +115,15 @@ def main() -> None:
     froude_nums = numpy.arange(0.5, 3.0, 0.25)
     angles_of_attack = numpy.arange(5.0, 15.1, 1.25)
 
-    cases = [
-        PlaningPlateCase(froude_num=froude_num, angle_of_attack=aoa)
-        for froude_num, aoa in itertools.product(froude_nums, angles_of_attack)
-    ]
+    cases: CaseList[PlaningPlateCase] = CaseList()
+    cases.add_cases_by_parameter_sweep(
+        PlaningPlateCase,
+        froude_num=froude_nums,
+        angle_of_attack=angles_of_attack,
+    )
 
     # Run the cases
-    for case in cases:
-        case.run()
+    cases.run_all()
 
     # Post-process the cases
     plot_summary_results(cases)

@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import functools
+import itertools
 from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Iterator
 from typing import Any
+from typing import Generic
+from typing import TypeVar
 
 
 class _NoDefault:
@@ -121,3 +126,65 @@ class Case:
     def __init__(self, **kwargs: Any):
         for name, value in kwargs.items():
             setattr(self, name, value)
+
+    def run(self) -> None:
+        raise NotImplementedError()  # pragma: nocover
+
+
+TCase = TypeVar("TCase", bound=Case)
+
+
+class CaseList(Generic[TCase]):
+    """A generic collection of `Case` objects, and utility methods to run them."""
+
+    def __init__(self, cases: Iterable[TCase] | None = None):
+        self._cases: list[TCase] = list(cases or ())
+
+    def add(self, case: TCase) -> TCase:
+        """Add a case to the list:
+
+        Args:
+            case: The case to add.
+
+        Returns:
+            The case that was added.
+
+        """
+        self._cases.append(case)
+        return case
+
+    def add_cases_by_parameter_sweep(
+        self, case_class: type[TCase], **kwargs: Any
+    ) -> None:
+        """Add a number of cases by performing a parameter sweep using the Cartesian product.
+
+        Args:
+            case_class: The type of case to construct.
+            kwargs: Any parameters to pass to the case constructors. If iterable values are provided,
+                they will be used when performing the parameter sweep via `itertools.product`.
+
+        """
+        # Ensure all kwargs have iterable values by wrapping scalars and strings
+        for key, value in kwargs.items():
+            if isinstance(value, str) or not isinstance(value, Iterable):
+                kwargs[key] = [value]
+
+        for values in itertools.product(*kwargs.values()):
+            new_kwargs = {k: v for k, v in zip(kwargs.keys(), values)}
+            case = case_class(**new_kwargs)
+            self.add(case)
+
+    def run_all(self) -> None:
+        """Run all the cases."""
+        for case in self._cases:
+            case.run()
+
+    def __contains__(self, item: TCase) -> bool:
+        return item in self._cases
+
+    def __len__(self) -> int:
+        return len(self._cases)
+
+    def __iter__(self) -> Iterator[TCase]:
+        for case in self._cases:
+            yield case
