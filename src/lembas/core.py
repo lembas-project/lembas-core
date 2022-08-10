@@ -5,6 +5,7 @@ import types
 from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Iterator
+from functools import WRAPPER_ASSIGNMENTS
 from typing import Any
 from typing import ClassVar
 from typing import Generic
@@ -134,8 +135,11 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
     """
 
     def decorator(f: StepMethod) -> StepMethod:
-        # TODO: Need to do equivalent of functools.wraps here
-        return CaseStep(f, condition=condition)
+        new_method = CaseStep(f, condition=condition)
+        # This is largely a replica of functools.wraps, which doesn't seem to work
+        for attr in WRAPPER_ASSIGNMENTS:
+            setattr(new_method, attr, getattr(f, attr))
+        return new_method
 
     return decorator
 

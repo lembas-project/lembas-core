@@ -22,6 +22,7 @@ class MyCase(Case):
 
     @step()
     def set_has_been_run(self) -> None:
+        """Set has_been_run to True."""
         self.has_been_run = True
 
 
@@ -58,6 +59,11 @@ def test_case_parameter_bounds_raises_exception(
     """An exception is raised when attempting to set the value out of bounds."""
     with pytest.raises(ValueError):
         case.my_param = input_value
+
+
+def test_case_step_docstring(case: MyCase) -> None:
+    """The docstring is replaced on a wrapped @step method."""
+    assert case.set_has_been_run.__doc__ == "Set has_been_run to True."
 
 
 def test_case_step_condition_is_not_met(case: MyCase) -> None:
