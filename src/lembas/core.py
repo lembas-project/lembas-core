@@ -114,7 +114,7 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
     def decorator(f: StepMethod) -> StepMethod:
         @functools.wraps(f)
         def new_f(self: Case) -> None:
-            if condition is not None and condition(self):
+            if condition is None or condition(self):
                 return f(self)
             else:
                 return None
