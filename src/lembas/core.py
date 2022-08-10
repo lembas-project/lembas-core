@@ -116,8 +116,7 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
         def new_f(self: Case) -> None:
             if condition is None or condition(self):
                 return f(self)
-            else:
-                return None
+            return None
 
         new_f.is_case_step = True  # type: ignore
 
