@@ -145,8 +145,9 @@ def plot_summary_results(cases: CaseList[HydrostaticDamCase]) -> None:
 
 
 def main() -> None:
-    cases = CaseList(
-        HydrostaticDamCase(reference_head=h_ref) for h_ref in np.arange(0.8, 10.1, 0.2)
+    cases: CaseList[HydrostaticDamCase] = CaseList()
+    cases.add_cases_by_parameter_sweep(
+        HydrostaticDamCase, reference_head=np.arange(0.8, 10.1, 0.2)
     )
     cases.run_all()
 

@@ -7,7 +7,6 @@ Each case is run with `planingfsi` and is characterized by the Froude number
 from __future__ import annotations
 
 import dataclasses
-import itertools
 import shutil
 import subprocess
 from functools import cached_property
@@ -116,9 +115,11 @@ def main() -> None:
     froude_nums = numpy.arange(0.5, 3.0, 0.25)
     angles_of_attack = numpy.arange(5.0, 15.1, 1.25)
 
-    cases = CaseList(
-        PlaningPlateCase(froude_num=froude_num, angle_of_attack=aoa)
-        for froude_num, aoa in itertools.product(froude_nums, angles_of_attack)
+    cases: CaseList[PlaningPlateCase] = CaseList()
+    cases.add_cases_by_parameter_sweep(
+        PlaningPlateCase,
+        froude_num=froude_nums,
+        angle_of_attack=angles_of_attack,
     )
 
     # Run the cases
