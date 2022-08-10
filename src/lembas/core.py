@@ -138,7 +138,7 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
         new_method = CaseStep(f, condition=condition)
         # This is largely a replica of functools.wraps, which doesn't seem to work
         for attr in WRAPPER_ASSIGNMENTS:
-            setattr(new_method, attr, getattr(f, attr))
+            setattr(new_method, attr, getattr(f, attr, None))
         return new_method
 
     return decorator
