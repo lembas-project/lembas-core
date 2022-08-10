@@ -85,7 +85,8 @@ class InputParameter:
             return self._default
 
 
-RawCaseStepMethod = Callable[["Case"], None]
+TCase = TypeVar("TCase", bound="Case")
+RawCaseStepMethod = Callable[[TCase], None]
 
 
 class CaseStep:
@@ -114,12 +115,18 @@ class CaseStep:
 #       in the decorator definition for condition
 
 
-def step(condition: Callable[[Any], bool] | None = None) -> Any:
+def step(
+    method: RawCaseStepMethod | None = None,
+    /,
+    condition: Callable[[Any], bool] | None = None,
+) -> Any:
     """A decorator to define steps to be performed when running a `Case`.
 
     The step should not return a value.
 
     Args:
+        method: The decorator may be used without any arguments, in which case the defaults
+            will be used.
         condition: an optional callable which can be used to determine whether the step should run.
             It will receive the `Case` instance as its only argument, and must return a boolean
             which, if True, the step will run. Otherwise, it will be skipped.
@@ -141,6 +148,8 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
             setattr(new_method, attr, getattr(f, attr, None))
         return new_method
 
+    if method is not None:  # handle case where there are no arguments
+        return decorator(method)
     return decorator
 
 
@@ -162,9 +171,6 @@ class Case:
         """The default behavior is to run all of the methods decorated with `@step`."""
         for step_method in self._steps:
             step_method(self)
-
-
-TCase = TypeVar("TCase", bound=Case)
 
 
 class CaseList(Generic[TCase]):

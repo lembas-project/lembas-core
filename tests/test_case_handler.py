@@ -20,7 +20,7 @@ class MyCase(Case):
     def change_param_with_default(self) -> None:
         self.param_with_default = 5.0
 
-    @step()
+    @step
     def set_has_been_run(self) -> None:
         """Set has_been_run to True."""
         self.has_been_run = True
