@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import functools
 import itertools
+import types
 from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Iterator
@@ -84,11 +84,33 @@ class InputParameter:
             return self._default
 
 
+StepMethod = Callable[["Case"], None]
+
+
+class CaseStep:
+    def __init__(
+        self, func: StepMethod, *, condition: Callable[[Any], bool] | None = None
+    ):
+        self._func = func
+        self._condition = condition
+
+    def __call__(self, instance: Case) -> None:
+        if self._condition is None or self._condition(instance):
+            return self._func(instance)
+        return None
+
+    def __get__(self, instance: Any, cls: Any) -> types.MethodType:
+        """We need to implement __get__ so that the `CaseStep` can be used as a method.
+
+        Without doing this, Python will treat it as a normal attribute access, rather
+        than as a descriptor.
+
+        """
+        return types.MethodType(self, instance)
+
+
 # TODO: I can't figure out how to properly resolve type errors when the argument is `Case`
 #       in the decorator definition for condition
-
-
-StepMethod = Callable[["Case"], None]
 
 
 def step(condition: Callable[[Any], bool] | None = None) -> Any:
@@ -112,15 +134,8 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
     """
 
     def decorator(f: StepMethod) -> StepMethod:
-        @functools.wraps(f)
-        def new_f(self: Case) -> None:
-            if condition is None or condition(self):
-                return f(self)
-            return None
-
-        new_f.is_case_step = True  # type: ignore
-
-        return new_f
+        # TODO: Need to do equivalent of functools.wraps here
+        return CaseStep(f, condition=condition)
 
     return decorator
 
@@ -131,10 +146,9 @@ class Case:
     _steps: ClassVar[list[StepMethod]]
 
     def __init_subclass__(cls, **kwargs: Any):
-        cls._steps = []
-        for name, attribute in cls.__dict__.items():
-            if getattr(attribute, "is_case_step", False):
-                cls._steps.append(attribute)
+        cls._steps = [
+            method for method in cls.__dict__.values() if isinstance(method, CaseStep)
+        ]
 
     def __init__(self, **kwargs: Any):
         for name, value in kwargs.items():
