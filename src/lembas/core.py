@@ -85,12 +85,12 @@ class InputParameter:
             return self._default
 
 
-StepMethod = Callable[["Case"], None]
+RawCaseStepMethod = Callable[["Case"], None]
 
 
 class CaseStep:
     def __init__(
-        self, func: StepMethod, *, condition: Callable[[Any], bool] | None = None
+        self, func: RawCaseStepMethod, *, condition: Callable[[Any], bool] | None = None
     ):
         self._func = func
         self._condition = condition
@@ -134,7 +134,7 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
 
     """
 
-    def decorator(f: StepMethod) -> StepMethod:
+    def decorator(f: RawCaseStepMethod) -> CaseStep:
         new_method = CaseStep(f, condition=condition)
         # This is largely a replica of functools.wraps, which doesn't seem to work
         for attr in WRAPPER_ASSIGNMENTS:
@@ -147,7 +147,7 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
 class Case:
     """Base case for all cases."""
 
-    _steps: ClassVar[list[StepMethod]]
+    _steps: ClassVar[list[CaseStep]]
 
     def __init_subclass__(cls, **kwargs: Any):
         cls._steps = [
