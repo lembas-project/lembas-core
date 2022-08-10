@@ -101,3 +101,12 @@ class TestCaseList:
     def test_is_iterable(self) -> None:
         case_list = CaseList(MyCase(required_param=i) for i in range(10))
         assert [case.required_param for case in case_list] == list(range(10))
+
+    def test_add_param_sweep(self, case_list: CaseList) -> None:
+        case_list.add_cases_by_parameter_sweep(
+            MyCase,
+            required_param=1.0,
+            my_param=range(2, 6),
+            param_with_default=range(5),
+        )
+        assert len(case_list) == 20

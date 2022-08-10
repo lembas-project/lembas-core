@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import itertools
 from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Iterator
@@ -151,6 +152,27 @@ class CaseList(Generic[TCase]):
         """
         self._cases.append(case)
         return case
+
+    def add_cases_by_parameter_sweep(
+        self, case_class: type[TCase], **kwargs: Any
+    ) -> None:
+        """Add a number of cases by performing a parameter sweep using the Cartesian product.
+
+        Args:
+            case_class: The type of case to construct.
+            kwargs: Any parameters to pass to the case constructors. If iterable values are provided,
+                they will be used when performing the parameter sweep via `itertools.product`.
+
+        """
+        # Ensure all kwargs have iterable values by wrapping scalars and strings
+        for key, value in kwargs.items():
+            if isinstance(value, str) or not isinstance(value, Iterable):
+                kwargs[key] = [value]
+
+        for values in itertools.product(*kwargs.values()):
+            new_kwargs = {k: v for k, v in zip(kwargs.keys(), values)}
+            case = case_class(**new_kwargs)
+            self.add(case)
 
     def run_all(self) -> None:
         """Run all the cases."""
