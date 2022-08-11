@@ -17,7 +17,7 @@ class MyCase(Case):
     first_step_has_been_run = InputParameter(default=False)
     second_step_has_been_run = InputParameter(default=False)
 
-    @step(condition=lambda self: self.my_param > 4)
+    @step(condition=lambda self: self.my_param > 4, requires="second_step")
     def change_param_with_default(self) -> None:
         self.param_with_default = 5.0
 
@@ -88,7 +88,7 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
 
 def test_case_steps_order(case: MyCase) -> None:
     step_names = [step.name for step in case.steps]  # type: ignore
-    assert step_names == ["change_param_with_default", "first_step", "second_step"]
+    assert step_names == ["first_step", "second_step", "change_param_with_default"]
 
 
 @pytest.fixture()
