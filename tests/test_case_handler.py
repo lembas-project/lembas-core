@@ -14,14 +14,23 @@ class MyCase(Case):
     my_param = InputParameter(type=float, min=2.0, max=5.0)
     param_with_default = InputParameter(default=10.0)
     required_param = InputParameter(type=float)
-    has_been_run = InputParameter(default=False)
+    first_step_has_been_run = InputParameter(default=False)
+    second_step_has_been_run = InputParameter(default=False)
 
-    @step(condition=lambda self: self.my_param > 4)
+    @step(condition=lambda self: self.my_param > 4, requires="second_step")
     def change_param_with_default(self) -> None:
         self.param_with_default = 5.0
 
-    def run(self) -> None:
-        self.has_been_run = True
+    @step(requires="first_step")
+    def second_step(self) -> None:
+        """Set has_been_run to True."""
+        if not self.first_step_has_been_run:
+            raise RuntimeError
+        self.second_step_has_been_run = True
+
+    @step
+    def first_step(self) -> None:
+        self.first_step_has_been_run = True
 
 
 @pytest.fixture()
@@ -59,6 +68,11 @@ def test_case_parameter_bounds_raises_exception(
         case.my_param = input_value
 
 
+def test_case_step_docstring(case: MyCase) -> None:
+    """The docstring is replaced on a wrapped @step method."""
+    assert case.second_step.__doc__ == "Set has_been_run to True."
+
+
 def test_case_step_condition_is_not_met(case: MyCase) -> None:
     """If we don't set the case.my_param, the step shouldn't run."""
     case.change_param_with_default()
@@ -70,6 +84,11 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
     case.my_param = 5.0
     case.change_param_with_default()
     assert case.param_with_default == pytest.approx(5.0)
+
+
+def test_case_steps_order(case: MyCase) -> None:
+    step_names = [step.name for step in case.steps]  # type: ignore
+    assert step_names == ["first_step", "second_step", "change_param_with_default"]
 
 
 @pytest.fixture()
@@ -90,9 +109,9 @@ class TestCaseList:
 
     def test_run_all_cases(self, case_list: CaseList, case: MyCase) -> None:
         case_list.add(case)
-        assert not case.has_been_run
+        assert not case.second_step_has_been_run
         case_list.run_all()
-        assert case.has_been_run
+        assert case.second_step_has_been_run
 
     def test_build_from_iterable(self) -> None:
         case_list = CaseList(MyCase(required_param=i) for i in range(10))

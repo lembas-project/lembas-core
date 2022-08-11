@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-import functools
 import itertools
+import types
 from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Iterator
+from functools import WRAPPER_ASSIGNMENTS
 from typing import Any
+from typing import ClassVar
 from typing import Generic
 from typing import TypeVar
 
@@ -83,19 +85,61 @@ class InputParameter:
             return self._default
 
 
+TCase = TypeVar("TCase", bound="Case")
+RawCaseStepMethod = Callable[[TCase], None]
+
+
+class CaseStep:
+    def __init__(
+        self,
+        func: RawCaseStepMethod,
+        *,
+        condition: Callable[[Any], bool] | None = None,
+        requires: str | Iterable[str] | None = None,
+    ):
+        self._func = func
+        self.name = func.__name__
+        self._condition = condition
+        self.requires = (
+            [requires] if isinstance(requires, str) else list(requires or [])
+        )
+
+    def __call__(self, instance: Case) -> None:
+        if self._condition is None or self._condition(instance):
+            return self._func(instance)
+        return None
+
+    def __get__(self, instance: Any, cls: Any) -> types.MethodType:
+        """We need to implement __get__ so that the `CaseStep` can be used as a method.
+
+        Without doing this, Python will treat it as a normal attribute access, rather
+        than as a descriptor.
+
+        """
+        return types.MethodType(self, instance)
+
+
 # TODO: I can't figure out how to properly resolve type errors when the argument is `Case`
 #       in the decorator definition for condition
 
 
-def step(condition: Callable[[Any], bool] | None = None) -> Any:
+def step(
+    method: RawCaseStepMethod | None = None,
+    /,
+    condition: Callable[[Any], bool] | None = None,
+    requires: str | Iterable[str] | None = None,
+) -> Any:
     """A decorator to define steps to be performed when running a `Case`.
 
     The step should not return a value.
 
     Args:
+        method: The decorator may be used without any arguments, in which case the defaults
+            will be used.
         condition: an optional callable which can be used to determine whether the step should run.
             It will receive the `Case` instance as its only argument, and must return a boolean
             which, if True, the step will run. Otherwise, it will be skipped.
+        requires: An iterable of dependent steps on which this one depends, or a single string.
 
     Usage:
         ```
@@ -107,31 +151,50 @@ def step(condition: Callable[[Any], bool] | None = None) -> Any:
 
     """
 
-    def decorator(f: Callable[[Case], None]) -> Callable[[Case], None]:
-        @functools.wraps(f)
-        def new_f(self: Case) -> None:
-            if condition is not None and condition(self):
-                return f(self)
-            else:
-                return None
+    def decorator(f: RawCaseStepMethod) -> CaseStep:
+        new_method = CaseStep(f, condition=condition, requires=requires)
+        # This is largely a replica of functools.wraps, which doesn't seem to work
+        for attr in WRAPPER_ASSIGNMENTS:
+            setattr(new_method, attr, getattr(f, attr, None))
+        return new_method
 
-        return new_f
-
+    if method is not None:  # handle case where there are no arguments
+        return decorator(method)
     return decorator
 
 
 class Case:
     """Base case for all cases."""
 
+    _steps: ClassVar[dict[str, CaseStep]]
+
+    def __init_subclass__(cls, **kwargs: Any):
+        cls._steps = {
+            method.name: method
+            for method in cls.__dict__.values()
+            if isinstance(method, CaseStep)
+        }
+
     def __init__(self, **kwargs: Any):
+        self._completed_steps: set[str] = set()
         for name, value in kwargs.items():
             setattr(self, name, value)
 
+    @property
+    def steps(self) -> Iterator[CaseStep]:
+        """Yield the case steps in order, with proper sorting of dependencies."""
+        steps = dict(self._steps)
+        while steps:
+            for name, step in steps.items():
+                if not step.requires or (set(step.requires).issubset(self._completed_steps)):  # type: ignore
+                    yield steps.pop(name)
+                    self._completed_steps.add(name)
+                    break
+
     def run(self) -> None:
-        raise NotImplementedError()  # pragma: nocover
-
-
-TCase = TypeVar("TCase", bound=Case)
+        """The default behavior is to run all the methods decorated with `@step`."""
+        for step_method in self.steps:
+            step_method(self)
 
 
 class CaseList(Generic[TCase]):

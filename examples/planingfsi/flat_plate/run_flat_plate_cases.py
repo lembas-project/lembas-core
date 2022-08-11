@@ -76,7 +76,7 @@ class PlaningPlateCase(Case):
         return dataclasses.asdict(self.results)
 
     @step(condition=lambda self: not (self.case_dir / "configDict").exists())
-    def _create_input_files(self) -> None:
+    def create_input_files(self) -> None:
         print("Creating input files")
         case_dir_base = FLAT_PLATE_ROOT / "flat_plate_base"
         shutil.copytree(case_dir_base, self.case_dir)
@@ -86,19 +86,14 @@ class PlaningPlateCase(Case):
             fp.write(f"AOA: {self.angle_of_attack}\n")
 
     @step(condition=lambda self: not (self.case_dir / "mesh").exists())
-    def _generate_mesh(self) -> None:
+    def generate_mesh(self) -> None:
         print("Generating mesh")
         subprocess.run(["planingfsi", "mesh"], cwd=str(self.case_dir))
 
     @step(condition=lambda self: not list(self.case_dir.glob("[0-9]*")))
-    def _run_planingfsi(self) -> None:
+    def run_planingfsi(self) -> None:
         print("Running planingfsi")
         subprocess.run(["planingfsi", "run"], cwd=str(self.case_dir))
-
-    def run(self) -> None:
-        self._create_input_files()
-        self._generate_mesh()
-        self._run_planingfsi()
 
 
 def plot_summary_results(cases: CaseList[PlaningPlateCase]) -> None:
