@@ -91,10 +91,18 @@ RawCaseStepMethod = Callable[[TCase], None]
 
 class CaseStep:
     def __init__(
-        self, func: RawCaseStepMethod, *, condition: Callable[[Any], bool] | None = None
+        self,
+        func: RawCaseStepMethod,
+        *,
+        condition: Callable[[Any], bool] | None = None,
+        requires: str | Iterable[str] | None = None,
     ):
         self._func = func
+        self.name = func.__name__
         self._condition = condition
+        self.requires = (
+            [requires] if isinstance(requires, str) else list(requires or [])
+        )
 
     def __call__(self, instance: Case) -> None:
         if self._condition is None or self._condition(instance):
@@ -119,6 +127,7 @@ def step(
     method: RawCaseStepMethod | None = None,
     /,
     condition: Callable[[Any], bool] | None = None,
+    requires: str | Iterable[str] | None = None,
 ) -> Any:
     """A decorator to define steps to be performed when running a `Case`.
 
@@ -130,6 +139,7 @@ def step(
         condition: an optional callable which can be used to determine whether the step should run.
             It will receive the `Case` instance as its only argument, and must return a boolean
             which, if True, the step will run. Otherwise, it will be skipped.
+        requires: An iterable of dependent steps on which this one depends, or a single string.
 
     Usage:
         ```
@@ -142,7 +152,7 @@ def step(
     """
 
     def decorator(f: RawCaseStepMethod) -> CaseStep:
-        new_method = CaseStep(f, condition=condition)
+        new_method = CaseStep(f, condition=condition, requires=requires)
         # This is largely a replica of functools.wraps, which doesn't seem to work
         for attr in WRAPPER_ASSIGNMENTS:
             setattr(new_method, attr, getattr(f, attr, None))
@@ -156,20 +166,34 @@ def step(
 class Case:
     """Base case for all cases."""
 
-    _steps: ClassVar[list[CaseStep]]
+    _steps: ClassVar[dict[str, CaseStep]]
 
     def __init_subclass__(cls, **kwargs: Any):
-        cls._steps = [
-            method for method in cls.__dict__.values() if isinstance(method, CaseStep)
-        ]
+        cls._steps = {
+            method.name: method
+            for method in cls.__dict__.values()
+            if isinstance(method, CaseStep)
+        }
 
     def __init__(self, **kwargs: Any):
+        self._completed_steps: set[str] = set()
         for name, value in kwargs.items():
             setattr(self, name, value)
 
+    @property
+    def steps(self) -> Iterator[CaseStep]:
+        """Yield the case steps in order, with proper sorting of dependencies."""
+        steps = dict(self._steps)
+        while steps:
+            for name, step in steps.items():
+                if not step.requires or (set(step.requires).issubset(self._completed_steps)):  # type: ignore
+                    yield steps.pop(name)
+                    self._completed_steps.add(name)
+                    break
+
     def run(self) -> None:
-        """The default behavior is to run all of the methods decorated with `@step`."""
-        for step_method in self._steps:
+        """The default behavior is to run all the methods decorated with `@step`."""
+        for step_method in self.steps:
             step_method(self)
 
 
