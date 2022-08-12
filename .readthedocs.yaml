@@ -10,6 +10,3 @@ build:
   - sphinx-build -b html -d docs/build/doctrees docs/source _readthedocs/html
 sphinx:
   configuration: docs/conf.py
-python:
-  install:
-  - requirements: docs/requirements.txt
