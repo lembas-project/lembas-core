@@ -176,8 +176,7 @@ class Case:
         for name, value in kwargs.items():
             setattr(self, name, value)
 
-    @property
-    def steps(self) -> Iterator[CaseStep]:
+    def _get_sorted_steps(self) -> Iterator[CaseStep]:
         """Yield the case steps in order, with proper sorting of dependencies."""
         steps = dict(self._steps)
         while steps:
@@ -189,7 +188,7 @@ class Case:
 
     def run(self) -> None:
         """The default behavior is to run all the methods decorated with `@step`."""
-        for step_method in self.steps:
+        for step_method in self._get_sorted_steps():
             step_method(self)
 
 

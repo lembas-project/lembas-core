@@ -87,7 +87,7 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
 
 
 def test_case_steps_order(case: MyCase) -> None:
-    step_names = [step.name for step in case.steps]  # type: ignore
+    step_names = [step.name for step in case._get_sorted_steps()]  # type: ignore
     assert step_names == ["first_step", "second_step", "change_param_with_default"]
 
 
