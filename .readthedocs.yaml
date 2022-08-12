@@ -5,6 +5,7 @@ build:
   tools:
     python: "3.9"
   commands:
+  - pip install -r docs/requirements.txt
   - sphinx-apidoc -f -o docs/source/api src/lembas -H "API Docs"
   - sphinx -b html -d docs/build/doctrees docs/source _readthedocs/html
 sphinx:
