@@ -25,7 +25,7 @@ case = HelloCase()
 case.run()  # prints "Hello Anonymous!"
 
 case = HelloCase(name="Mike")
-case.run()  # prints "Hello Mike!")
+case.run()  # prints "Hello Mike!"
 ```
 
 ```{note}
