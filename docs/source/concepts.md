@@ -4,7 +4,6 @@
 
 `lembas` represents parametrized **types** of analyses via the concept of a case handler.
 A case handler is analogous to a "workflow" in other frameworks, and is a collection of **steps** organized to attain a single goal.
-The full case is run via the run method.
 
 For example, consider the following case handler:
 
@@ -19,7 +18,7 @@ class HelloCase(Case):
         print(f"Hello {self.name}!")
 ```
 
-The case handler may be executed once by constructing an instance and running it:
+The case handler may be run by constructing an instance and calling the [`run()`](lembas.core.Case.run) method:
 
 ```python
 case = HelloCase()
@@ -27,6 +26,10 @@ case.run()  # prints "Hello Anonymous!"
 
 case = HelloCase(name="Mike")
 case.run()  # prints "Hello Mike!")
+```
+
+```{note}
+In this case, `name` is an optional parameter because a `default` is defined
 ```
 
 That is not very interesting.
