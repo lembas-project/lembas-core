@@ -119,10 +119,6 @@ class CaseStep:
         return types.MethodType(self, instance)
 
 
-# TODO: I can't figure out how to properly resolve type errors when the argument is `Case`
-#       in the decorator definition for condition
-
-
 def step(
     method: RawCaseStepMethod | None = None,
     /,
