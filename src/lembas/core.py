@@ -142,12 +142,12 @@ def step(
         requires: An iterable of dependent steps on which this one depends, or a single string.
 
     Usage:
-        ```
-        class MyCase(Case):
-            @step(condition=lambda case: case.case_dir.exists())
-            def some_analysis_step(self):
-                # do something
-        ```
+        .. code-block::
+
+            class MyCase(Case):
+                @step(condition=lambda case: case.case_dir.exists())
+                def some_analysis_step(self):
+                    # do something
 
     """
 
