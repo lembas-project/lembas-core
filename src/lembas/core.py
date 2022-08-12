@@ -11,6 +11,8 @@ from typing import ClassVar
 from typing import Generic
 from typing import TypeVar
 
+__all__ = ["InputParameter", "Case", "CaseList", "step"]
+
 
 class _NoDefault:
     """Used as a sentinel to indicate lack of a default value for an `InputAttribute`."""
@@ -20,6 +22,19 @@ _builtin_type = type
 
 
 class InputParameter:
+    """An input parameter which can be defined for a ``Case``, which determines case-specific values.
+
+    The parameter is of a defined type and type conversion will be performed when setting the value,
+    if appropriate.
+
+    Args:
+        type: The parameter type, e.g. ``float``, ``str``, etc.
+        default: The default value. If the type is not set, the type of the default will be used.
+        min: The minimum value for the parameter (if it is a float).
+        max: The maximum value for the parameter (if it is a float).
+
+    """
+
     _name: str
     _type: type | None
     _min_value: float | None
@@ -159,7 +174,11 @@ def step(
 
 
 class Case:
-    """Base case for all cases."""
+    """Base case for all cases.
+
+    When constructing a new case, all assigned ``InputAttribute`` values can be set via keyword arguments.
+
+    """
 
     _steps: ClassVar[dict[str, CaseStep]]
 
@@ -187,13 +206,23 @@ class Case:
                     break
 
     def run(self) -> None:
-        """The default behavior is to run all the methods decorated with `@step`."""
+        """Run the case.
+
+        If this method is not overridden, the default behavior is to run all the methods
+        decorated with ``@step``.
+
+        """
         for step_method in self._sorted_steps:
             step_method(self)
 
 
 class CaseList(Generic[TCase]):
-    """A generic collection of `Case` objects, and utility methods to run them."""
+    """A generic collection of ``Case`` objects, and utility methods to create and run them.
+
+    Args:
+        cases: An optional iterable of ``Case`` objects used to initialize the ``CaseList``.
+
+    """
 
     def __init__(self, cases: Iterable[TCase] | None = None):
         self._cases: list[TCase] = list(cases or ())
@@ -219,7 +248,7 @@ class CaseList(Generic[TCase]):
         Args:
             case_class: The type of case to construct.
             kwargs: Any parameters to pass to the case constructors. If iterable values are provided,
-                they will be used when performing the parameter sweep via `itertools.product`.
+                they will be used when performing the parameter sweep via ``itertools.product``.
 
         """
         # Ensure all kwargs have iterable values by wrapping scalars and strings
