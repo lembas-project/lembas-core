@@ -98,7 +98,6 @@ class CaseStep:
         requires: str | Iterable[str] | None = None,
     ):
         self._func = func
-        self.name = func.__name__
         self._condition = condition
         self.requires = (
             [requires] if isinstance(requires, str) else list(requires or [])
@@ -166,8 +165,8 @@ class Case:
 
     def __init_subclass__(cls, **kwargs: Any):
         cls._steps = {
-            method.name: method
-            for method in cls.__dict__.values()
+            name: method
+            for name, method in cls.__dict__.items()
             if isinstance(method, CaseStep)
         }
 
