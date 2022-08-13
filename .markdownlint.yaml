@@ -1,6 +1,6 @@
 MD013:
   # Allow long lines to minimize line diffs
-  line_length: 1000
+  line_length: 100
 
 MD033:
   # Allowed elements
