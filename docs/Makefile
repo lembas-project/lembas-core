@@ -22,7 +22,7 @@ clean:
 
 .PHONY: api-docs
 api-docs:
-	sphinx-apidoc -f -o source/api ../src/lembas -H "API Docs"
+	sphinx-apidoc -f -o source/api ../src/lembas -H "API Docs" -T -M
 
 .PHONY: html
 html: api-docs
