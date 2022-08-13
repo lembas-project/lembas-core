@@ -1,6 +1,8 @@
-# Concepts
+# User Guide
 
-## Case handlers
+## Concepts
+
+### Case handlers
 
 `lembas` represents parametrized **types** of analyses via the concept of a case handler.
 A case handler is analogous to a "workflow" in other frameworks, and is a collection of **steps**
@@ -55,7 +57,7 @@ cases.add_cases_by_parameter_sweep(
 cases.run_all()  # prints "Hello Rivers!", "Hello Brian!", ...
 ```
 
-## Case steps
+### Case steps
 
 The above example demonstrates the concept of a `Case`, however its power does not become
 apparent until the **step** concept is explained in more detail.
@@ -114,7 +116,7 @@ def post_process_results(self) -> None:
     ...
 ```
 
-## Conditional steps
+### Conditional steps
 
 By default, a `step` will be run each time the case is run.
 However, in the case of restarts, it is often desirable to conditionally run a step based on
