@@ -11,6 +11,8 @@ from typing import ClassVar
 from typing import Generic
 from typing import TypeVar
 
+__all__ = ["InputParameter", "Case", "CaseList", "step"]
+
 
 class _NoDefault:
     """Used as a sentinel to indicate lack of a default value for an `InputAttribute`."""
@@ -20,6 +22,19 @@ _builtin_type = type
 
 
 class InputParameter:
+    """An input parameter which can be defined for a ``Case``, which determines case-specific values.
+
+    The parameter is of a defined type and type conversion will be performed when setting the value,
+    if appropriate.
+
+    Args:
+        type: The parameter type, e.g. ``float``, ``str``, etc.
+        default: The default value. If the type is not set, the type of the default will be used.
+        min: The minimum value for the parameter (if it is a float).
+        max: The maximum value for the parameter (if it is a float).
+
+    """
+
     _name: str
     _type: type | None
     _min_value: float | None
@@ -98,7 +113,6 @@ class CaseStep:
         requires: str | Iterable[str] | None = None,
     ):
         self._func = func
-        self.name = func.__name__
         self._condition = condition
         self.requires = (
             [requires] if isinstance(requires, str) else list(requires or [])
@@ -117,10 +131,6 @@ class CaseStep:
 
         """
         return types.MethodType(self, instance)
-
-
-# TODO: I can't figure out how to properly resolve type errors when the argument is `Case`
-#       in the decorator definition for condition
 
 
 def step(
@@ -142,12 +152,12 @@ def step(
         requires: An iterable of dependent steps on which this one depends, or a single string.
 
     Usage:
-        ```
-        class MyCase(Case):
-            @step(condition=lambda case: case.case_dir.exists())
-            def some_analysis_step(self):
-                # do something
-        ```
+        .. code-block::
+
+            class MyCase(Case):
+                @step(condition=lambda case: case.case_dir.exists())
+                def some_analysis_step(self):
+                    # do something
 
     """
 
@@ -164,14 +174,18 @@ def step(
 
 
 class Case:
-    """Base case for all cases."""
+    """Base case for all cases.
+
+    When constructing a new case, all assigned ``InputAttribute`` values can be set via keyword arguments.
+
+    """
 
     _steps: ClassVar[dict[str, CaseStep]]
 
     def __init_subclass__(cls, **kwargs: Any):
         cls._steps = {
-            method.name: method
-            for method in cls.__dict__.values()
+            name: method
+            for name, method in cls.__dict__.items()
             if isinstance(method, CaseStep)
         }
 
@@ -181,7 +195,7 @@ class Case:
             setattr(self, name, value)
 
     @property
-    def steps(self) -> Iterator[CaseStep]:
+    def _sorted_steps(self) -> Iterator[CaseStep]:
         """Yield the case steps in order, with proper sorting of dependencies."""
         steps = dict(self._steps)
         while steps:
@@ -192,13 +206,23 @@ class Case:
                     break
 
     def run(self) -> None:
-        """The default behavior is to run all the methods decorated with `@step`."""
-        for step_method in self.steps:
+        """Run the case.
+
+        If this method is not overridden, the default behavior is to run all the methods
+        decorated with ``@step``.
+
+        """
+        for step_method in self._sorted_steps:
             step_method(self)
 
 
 class CaseList(Generic[TCase]):
-    """A generic collection of `Case` objects, and utility methods to run them."""
+    """A generic collection of ``Case`` objects, and utility methods to create and run them.
+
+    Args:
+        cases: An optional iterable of ``Case`` objects used to initialize the ``CaseList``.
+
+    """
 
     def __init__(self, cases: Iterable[TCase] | None = None):
         self._cases: list[TCase] = list(cases or ())
@@ -224,7 +248,7 @@ class CaseList(Generic[TCase]):
         Args:
             case_class: The type of case to construct.
             kwargs: Any parameters to pass to the case constructors. If iterable values are provided,
-                they will be used when performing the parameter sweep via `itertools.product`.
+                they will be used when performing the parameter sweep via ``itertools.product``.
 
         """
         # Ensure all kwargs have iterable values by wrapping scalars and strings

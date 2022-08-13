@@ -25,7 +25,7 @@ class MyCase(Case):
     def second_step(self) -> None:
         """Set has_been_run to True."""
         if not self.first_step_has_been_run:
-            raise RuntimeError
+            raise RuntimeError  # pragma: nocover
         self.second_step_has_been_run = True
 
     @step
@@ -87,7 +87,7 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
 
 
 def test_case_steps_order(case: MyCase) -> None:
-    step_names = [step.name for step in case.steps]  # type: ignore
+    step_names = [step._func.__name__ for step in case._sorted_steps]
     assert step_names == ["first_step", "second_step", "change_param_with_default"]
 
 
