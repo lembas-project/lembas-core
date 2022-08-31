@@ -3,7 +3,9 @@ build-backend = "setuptools.build_meta"
 requires = ["setuptools>=42", "setuptools-scm[toml]>=6.2"]
 
 [project]
-dependencies = []
+dependencies = [
+    "pluggy <= 1.1",
+]
 description = "Lifecycle Engineering Model-Based Analysis System"
 dynamic = ["version"]
 license = {text = "MIT"}
