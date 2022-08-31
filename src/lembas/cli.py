@@ -63,9 +63,11 @@ def run(
     plugin_path = Path(plugin).resolve()
     sys.path.insert(0, plugin_path.parent.as_posix())
     mod = importlib.import_module(plugin_path.stem)
-    class_ = getattr(mod, case_handler_name)
-    if class_ is None:
-        raise Abort(f"Could not find case handler {case_handler_name}")
+
+    try:
+        class_ = getattr(mod, case_handler_name)
+    except AttributeError:
+        raise Abort(f"Could not find [bold]{case_handler_name}[/bold] in {plugin_path}")
     else:
         print(f"Found [bold]{case_handler_name}[/bold] in {plugin_path}")
 
