@@ -19,11 +19,16 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture()
-def invoke_cli(tmp_path: Path, monkeypatch: MonkeyPatch) -> CLIInvoker:
+def run_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> Path:
+    """Create a temporary directory and change the working directory to it, returning the path."""
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
+
+
+@pytest.fixture()
+def invoke_cli(run_path: Path) -> CLIInvoker:
     """Returns a function, which can be used to call the CLI from within a temporary directory."""
     runner = CliRunner()
-
-    monkeypatch.chdir(tmp_path)
 
     def f(*args: str) -> Result:
         return runner.invoke(app, args)
