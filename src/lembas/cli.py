@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import importlib.util
-import sys
 from pathlib import Path
-from types import ModuleType
 from typing import Any
 from typing import Optional
 
@@ -11,6 +8,7 @@ from rich.console import Console
 from rich_click import typer
 
 from lembas._version import __version__
+from lembas.plugins import _load_module_from_path
 
 console = Console()
 app = typer.Typer(add_completion=False)
@@ -47,28 +45,6 @@ def main(
     if version:
         console.print(f"Lembas version: {__version__}", style="bold green")
         raise typer.Exit()
-
-
-def _load_module_from_path(mod_path: Path) -> ModuleType:
-    """Load a module from a filesystem Path.
-
-    Args:
-        mod_path: A path to the `.py` file.
-
-    Returns:
-        The imported module object.
-
-    """
-    mod_name = mod_path.stem
-    spec = importlib.util.spec_from_file_location(mod_name, mod_path.as_posix())
-    if spec is None:
-        raise LookupError(f"Cannot load module {mod_path}")
-
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[mod_name] = mod
-    assert spec.loader is not None
-    spec.loader.exec_module(mod)
-    return mod
 
 
 @app.command()
