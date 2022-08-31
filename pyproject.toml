@@ -13,6 +13,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
+pluggy = "^1.0.0"
 
 # Optional dependencies for examples
 pandas = { version = "^1.4.3", optional = true }
