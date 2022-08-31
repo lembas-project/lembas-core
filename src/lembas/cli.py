@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import importlib
+import sys
+from pathlib import Path
 from typing import Any
 from typing import Optional
 
@@ -11,6 +14,18 @@ from lembas._version import __version__
 console = Console()
 app = typer.Typer(add_completion=False)
 print = console.print
+
+
+class Okay(typer.Exit):
+    """Simply prints "OK" and an optional message, to the console, before cleanly exiting.
+
+    Provides a standard way to end/confirm a successful command.
+
+    """
+
+    def __init__(self, msg: str = "", *args: Any, **kwargs: Any):
+        print(f"OK. {msg}".rstrip(), style="green")
+        super().__init__(*args, **kwargs)
 
 
 class Abort(typer.Abort):
@@ -37,27 +52,30 @@ def main(
 def run(
     case_handler_name: str,
     *,
-    plugins: Optional[str] = None,
+    plugin: Optional[str] = None,
     params: Optional[list[str]] = None,
 ) -> None:
-    print(f"Preparing to run case handler: {case_handler_name}")
-    print(f"Will load plugins from {plugins}")
+
+    if plugin is None:
+        raise Abort("We must currently specify a plugin")
+
+    print("Attempting to load plugins")
+    plugin_path = Path(plugin).resolve()
+    sys.path.insert(0, plugin_path.parent.as_posix())
+    mod = importlib.import_module(plugin_path.stem)
+    class_ = getattr(mod, case_handler_name)
+    if class_ is None:
+        raise Abort(f"Could not find case handler {case_handler_name}")
+    else:
+        print(f"Found [bold]{case_handler_name}[/bold] in {plugin_path}")
 
     data = {}
-    params = params or []
-    for param in params:
-        print(param)
+    for param in params or []:
         key, value = param.split("=")
         data[key] = value
+    print(f"Case data: {data}")
 
-    import sys
-    from pathlib import Path
-
-    mod_dir = Path(__file__).parents[2] / "examples" / "planingfsi" / "flat_plate"
-    sys.path.insert(0, mod_dir.resolve().as_posix())
-    import importlib
-
-    mod = importlib.import_module("run_flat_plate_cases")
-    class_ = getattr(mod, case_handler_name)
+    print("Running the case")
     case = class_(**data)
     case.run()
+    raise Okay("Case complete")
