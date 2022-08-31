@@ -32,6 +32,7 @@ def invoke_cli(tmp_path: Path, monkeypatch: MonkeyPatch) -> CLIInvoker:
 
 
 def test_version(invoke_cli: CLIInvoker) -> None:
+    """A basic smoke-test to check that the CLI can print out the version."""
     result = invoke_cli("--version")
     assert result.exit_code == 0
     assert f"Lembas version: {__version__}" in result.stdout
