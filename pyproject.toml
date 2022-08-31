@@ -5,6 +5,8 @@ requires = ["setuptools>=42", "setuptools-scm[toml]>=6.2"]
 [project]
 dependencies = [
     "pluggy <= 1.1",
+    "typer",
+    "rich-click[typer] <= 1.6",
 ]
 description = "Lifecycle Engineering Model-Based Analysis System"
 dynamic = ["version"]
@@ -31,6 +33,9 @@ examples = [
   "planingfsi @ git+https://github.com/mattkram/planingfsi.git@main",
   "pandas <= 1.5"
 ]
+
+[project.scripts]
+lembas = "lembas.cli:app"
 
 [tool.isort]
 force_single_line = true
