@@ -17,7 +17,7 @@ def _load_module_from_path(mod_path: Path) -> ModuleType:
 
     """
     mod_name = mod_path.stem
-    spec = importlib.util.spec_from_file_location(mod_name, mod_path.as_posix())
+    spec = importlib.util.spec_from_file_location(mod_name, mod_path)
     if spec is None:
         raise LookupError(f"Cannot load module {mod_path}")
 
