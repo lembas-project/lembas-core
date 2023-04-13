@@ -53,6 +53,7 @@ jobs:
           --cov tests \
           tests
     - name: Publish code coverage
-      continue-on-error: true
-      run: |
-        poetry run codecov
+      uses: codecov/codecov-action@v2
+      with:
+        files: ./test-reports/coverage.xml
+        env_vars: OS,PYTHON
