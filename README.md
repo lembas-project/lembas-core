@@ -29,3 +29,10 @@ python -m venv venv
 . venv/bin/activate
 pip intall -e ".[dev]"
 ```
+
+## Run the tests
+
+Run the following from the project directory:
+```shell
+pytest
+```
