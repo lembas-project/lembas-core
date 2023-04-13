@@ -18,3 +18,14 @@ and data-science Python ecosystem most accessible to Subject-Matter Experts (SME
 Engineering domains.
 By enabling seamless intercommunication between domains, and proper version management of
 analysis models, truly interdisciplinary system design and assessment become possible.
+
+
+## Dev environment setup
+
+Create a new virtual environment, activate it, and install in development mode:
+
+```shell
+python -m venv venv
+. venv/bin/activate
+pip intall -e ".[dev]"
+```
