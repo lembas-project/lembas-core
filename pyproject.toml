@@ -1,35 +1,29 @@
-[tool.poetry]
+[build-system]
+requires = ["setuptools>=42", "setuptools-scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
 name = "lembas"
-version = "0.1.0.dev1"
+dynamic = ["version"]
 description = "Lifecycle Engineering Model-Based Analysis System"
-authors = [
-    "Matt Kramer <mkramer@anaconda.com>",
-    "Jose Mesa <jmesa@anaconda.com>",
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest<=7.2",
+    "pytest-cov<=3.1",
 ]
-license = "MIT"
-packages = [
-    { include = "lembas", from = "src" },
+examples = [
+    "planingfsi @ git+https://github.com/mattkram/planingfsi.git@main",
+    "pandas <= 1.5",
 ]
-
-[tool.poetry.dependencies]
-python = ">=3.9,<3.12"
-
-# Optional dependencies for examples
-pandas = { version = "^1.4.3", optional = true }
-planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "main", optional = true }
-
-[tool.poetry.dev-dependencies]
-pytest = "^7.1.2"
-pytest-cov = "^3.0.0"
-
-[tool.poetry.extras]
-examples = ["planingfsi", "pandas"]
-ci = ["pytest", "pytest-cov"]
+ci = ["lembas[dev]"]
 
 [tool.isort]
 profile = "black"
 force_single_line = true
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.setuptools_scm]
+write_to = "src/lembas/_version.py"
