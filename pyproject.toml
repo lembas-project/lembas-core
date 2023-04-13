@@ -16,7 +16,7 @@ python = ">=3.9,<3.12"
 
 # Optional dependencies for examples
 pandas = { version = "^1.4.3", optional = true }
-planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "dev", optional = true }
+planingfsi = { git = "https://github.com/mattkram/planingfsi.git", branch = "main", optional = true }
 
 # Optional dependencies for ci pipeline
 codecov = {version = "^2.1.12", optional = true}
