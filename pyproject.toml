@@ -7,7 +7,7 @@ name = "lembas"
 dynamic = ["version"]
 description = "Lifecycle Engineering Model-Based Analysis System"
 license = { text = "MIT" }
-requires-python = ">=3.9"
+requires-python = ">=3.8"
 dependencies = []
 
 [project.optional-dependencies]
