@@ -12,47 +12,42 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.9', '3.10']
+        python-version: ['3.9', '3.10', '3.11']
         include:
-        - python-version: '3.11.0-beta - 3.11'
+        - python-version: '3.12-dev'
           os: ubuntu-latest
           experimental: true
     runs-on: ${{ matrix.os }}
     steps:
-    # ----------------------------------------------
-    # check-out repo and set-up python
-    # ----------------------------------------------
     - name: Check out repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
     - name: Set up python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    # ----------------------------------------------
-    # install & configure poetry
-    # ----------------------------------------------
-    - name: Install Poetry
-      uses: snok/install-poetry@v1.3.1
-      with:
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-    # ----------------------------------------------
-    # install dependencies
-    #----------------------------------------------
     - name: Install library
-      run: poetry install --no-interaction --extras ci
-    # ----------------------------------------------
-    # run test suite
-    # ----------------------------------------------
+      run: pip install ".[ci]"
     - name: Test with pytest
       run: |
-        poetry run pytest \
+        pytest \
           --junitxml=./test-reports/junit.xml \
           --cov-report xml:./test-reports/coverage.xml \
           --cov lembas \
           --cov tests \
           tests
     - name: Publish code coverage
-      continue-on-error: true
-      run: |
-        poetry run codecov
+      uses: codecov/codecov-action@v2
+      with:
+        files: ./test-reports/coverage.xml
+        env_vars: OS,PYTHON
+  # This check job runs to ensure all tests have passed, such that we can use it as a "wildcard" for branch
+  # protection to ensure all tests pass before a PR can be merged.
+  check:
+    if: always()
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Decide whether all required jobs succeeded or failed
+      uses: re-actors/alls-green@release/v1
+      with:
+        jobs: ${{ toJSON(needs) }}

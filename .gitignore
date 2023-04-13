@@ -57,3 +57,6 @@ venv.bak/
 # Generated documentation
 /docs/build/
 /docs/source/api/
+
+# Version file
+/src/lembas/_version.py
