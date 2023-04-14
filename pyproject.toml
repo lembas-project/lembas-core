@@ -20,6 +20,14 @@ examples = [
     "pandas <= 1.5",
 ]
 ci = ["lembas[dev]"]
+docs = [
+    "sphinx",
+    "sphinx_autodoc_typehints",
+    "toml",
+    "pydata-sphinx-theme",
+    "sphinx-autobuild",
+    "myst-parser",
+]
 
 [tool.isort]
 profile = "black"

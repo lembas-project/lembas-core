@@ -1,6 +1,0 @@
-sphinx
-sphinx_autodoc_typehints
-toml
-pydata-sphinx-theme
-sphinx-autobuild
-myst-parser
