@@ -2,11 +2,23 @@
 
 ## Setting up your dev environment
 
-`lembas-core` uses `poetry` for dependency management.
-Please see the [Poetry install guide](https://python-poetry.org/docs/#installation) for notes on
-installing `poetry`.
+Create a new virtual environment, activate it, and install in development mode:
+```shell
+python -m venv venv
+. venv/bin/activate
+pip intall -e ".[dev]"
+```
 
-Once you have `poetry` installed, you can run `poetry install` to setup a virtual environment and
-install the dev dependencies.
+## Run the tests
 
-If you would like to run the examples, run `poetry install --extras examples`.
+Run the following from the project directory:
+```shell
+pytest
+```
+
+## Running the examples
+
+If you would like to run the examples, you will need to run:
+```shell
+pip install -e ".[examples]"
+```
