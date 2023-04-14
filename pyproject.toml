@@ -1,37 +1,37 @@
 [build-system]
-requires = ["setuptools>=42", "setuptools-scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
+requires = ["setuptools>=42", "setuptools-scm[toml]>=6.2"]
 
 [project]
-name = "lembas"
-dynamic = ["version"]
-description = "Lifecycle Engineering Model-Based Analysis System"
-license = { text = "MIT" }
-requires-python = ">=3.9"
 dependencies = []
+description = "Lifecycle Engineering Model-Based Analysis System"
+dynamic = ["version"]
+license = {text = "MIT"}
+name = "lembas"
+requires-python = ">=3.9"
 
 [project.optional-dependencies]
+ci = ["lembas[dev]"]
 dev = [
-    "pytest<=7.2",
-    "pytest-cov<=3.1",
+  "pytest<=7.2",
+  "pytest-cov<=3.1"
+]
+docs = [
+  "myst-parser",
+  "pydata-sphinx-theme",
+  "sphinx",
+  "sphinx-autobuild",
+  "sphinx-autodoc-typehints",
+  "toml"
 ]
 examples = [
-    "planingfsi @ git+https://github.com/mattkram/planingfsi.git@main",
-    "pandas <= 1.5",
-]
-ci = ["lembas[dev]"]
-docs = [
-    "sphinx",
-    "sphinx_autodoc_typehints",
-    "toml",
-    "pydata-sphinx-theme",
-    "sphinx-autobuild",
-    "myst-parser",
+  "planingfsi @ git+https://github.com/mattkram/planingfsi.git@main",
+  "pandas <= 1.5"
 ]
 
 [tool.isort]
-profile = "black"
 force_single_line = true
+profile = "black"
 
 [tool.setuptools_scm]
 write_to = "src/lembas/_version.py"
