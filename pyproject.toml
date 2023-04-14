@@ -6,7 +6,6 @@ requires = ["setuptools>=42", "setuptools-scm[toml]>=6.2"]
 dependencies = [
     "pluggy <= 1.1",
     "typer",
-    "rich-click[typer] <= 1.6",
 ]
 description = "Lifecycle Engineering Model-Based Analysis System"
 dynamic = ["version"]

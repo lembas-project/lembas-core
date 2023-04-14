@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Any
 from typing import Optional
 
+import typer
 from rich.console import Console
-from rich_click import typer
 
 from lembas._version import __version__
 from lembas.plugins import _load_module_from_path
@@ -54,7 +54,6 @@ def run(
     plugin: Optional[str] = None,
     params: Optional[list[str]] = None,
 ) -> None:
-
     if plugin is None:
         raise Abort("We must currently specify a plugin")
 
