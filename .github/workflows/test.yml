@@ -27,6 +27,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install library
       run: pip install ".[ci]"
+    - name: Static type checking
+      run: mypy
     - name: Test with pytest
       run: |
         pytest \
