@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 
 from lembas._version import __version__
+from lembas.plugins import CaseHandlerNotFound
 from lembas.plugins import load_plugins_from_file
 from lembas.plugins import registry
 
@@ -59,11 +60,9 @@ def run(
         load_plugins_from_file(plugin)
 
     try:
-        class_ = registry[case_handler_name]
-    except KeyError:
-        raise Abort(
-            f"Could not find [bold]{case_handler_name}[/bold] in the plugin registry"
-        )
+        class_ = registry.get(case_handler_name)
+    except CaseHandlerNotFound as e:
+        raise Abort(str(e))
 
     data = {}
     for param in params or []:
