@@ -13,12 +13,19 @@ from lembas import Case
 from lembas import __version__
 from lembas.cli import app
 from lembas.plugins import _load_module_from_path
+from lembas.plugins import registry
 
 if TYPE_CHECKING:
     from _pytest.monkeypatch import MonkeyPatch
     from mypy_extensions import VarArg
 
     CLIInvoker = Callable[[VarArg(str)], Result]
+
+
+@pytest.fixture(autouse=True)
+def clean_case_handler_registry() -> None:
+    """Ensure the case handler registry global is cleared before every test."""
+    registry.clear()
 
 
 @pytest.fixture()
@@ -84,3 +91,27 @@ def test_load_plugin_module(plugin_module_path: Path) -> None:
     module = _load_module_from_path(plugin_module_path)
     assert hasattr(module, "MyCase")
     assert issubclass(module.MyCase, Case)
+
+
+def test_run_case_success(invoke_cli: CLIInvoker, plugin_module_path: Path) -> None:
+    """A successful run must specify the case handler name, plugin path, and parameters without a default value."""
+    my_param_value = 3.5
+    result = invoke_cli(
+        "run",
+        "MyCase",
+        "--plugin",
+        str(plugin_module_path),
+        f"my_param={my_param_value}",
+    )
+
+    assert result.exit_code == 0, result.stdout
+    assert "MyCase:" in result.stdout
+    assert f"- my_param: {my_param_value}" in result.stdout
+    assert "- has_been_run: False" in result.stdout
+
+
+def test_run_case_missing_case_handler(invoke_cli: CLIInvoker) -> None:
+    """If the case handler is not in the registry, execution is aborted."""
+    result = invoke_cli("run", "MyCase")
+    assert result.exit_code == 1, result.stdout
+    assert "Could not find MyCase in the case handler registry" in result.stdout

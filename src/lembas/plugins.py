@@ -41,6 +41,10 @@ class CaseHandlerRegistry:
                 f"Could not find [bold]{name}[/bold] in the case handler registry"
             )
 
+    def clear(self) -> None:
+        """Clear the case handler registry."""
+        self._registry.clear()
+
 
 registry = CaseHandlerRegistry()
 
