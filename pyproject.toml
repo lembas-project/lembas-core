@@ -31,7 +31,7 @@ docs = [
   "toml"
 ]
 examples = [
-  "planingfsi @ git+https://github.com/mattkram/planingfsi.git@main",
+  "planingfsi",
   "pandas <= 1.5"
 ]
 
