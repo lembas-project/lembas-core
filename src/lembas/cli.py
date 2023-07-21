@@ -18,22 +18,24 @@ print = console.print
 
 
 class Okay(typer.Exit):
-    """Simply prints "OK" and an optional message, to the console, before cleanly exiting.
+    """Prints an optional message to the console, before cleanly exiting.
 
     Provides a standard way to end/confirm a successful command.
 
     """
 
     def __init__(self, msg: str = "", *args: Any, **kwargs: Any):
-        print(msg.strip(), style="green")
+        if m := msg.strip():
+            console.print(m, style="green")
         super().__init__(*args, **kwargs)
 
 
 class Abort(typer.Abort):
-    """Abort with a consistent error message."""
+    """Prints an optional message to the console, before aborting with non-zero exit code."""
 
-    def __init__(self, msg: str, *args: Any, **kwargs: Any):
-        console.print(msg, style="red")
+    def __init__(self, msg: str = "", *args: Any, **kwargs: Any):
+        if m := msg.strip():
+            console.print(m, style="red")
         super().__init__(*args, **kwargs)
 
 
@@ -56,6 +58,7 @@ def run(
     *,
     plugin: Optional[Path] = None,
 ) -> None:
+    """Run a single case of a given case handler type."""
     if plugin is not None:
         load_plugins_from_file(plugin)
 
