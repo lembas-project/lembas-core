@@ -39,6 +39,7 @@ examples = [
 lembas = "lembas.cli:app"
 
 [tool.coverage.report]
+omit = [ "src/**/__main__.py" ]
 exclude_lines = [
   "pragma: no\\s*cover",
   # This covers both typing.TYPE_CHECKING and plain TYPE_CHECKING, with any amount of whitespace
