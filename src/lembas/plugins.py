@@ -61,9 +61,9 @@ def _load_module_from_path(mod_path: Path) -> ModuleType:
     """
     mod_name = mod_path.stem
     spec = importlib.util.spec_from_file_location(mod_name, mod_path)
-    if spec is None:
+    if spec is None:  # pragma: no cover
         raise LookupError(f"Cannot load module {mod_path}")
-    if spec.loader is None:
+    if spec.loader is None:  # pragma: no cover
         raise ValueError(f"Invalid spec loader while loading {mod_path}")
 
     mod = importlib.util.module_from_spec(spec)

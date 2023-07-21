@@ -38,6 +38,14 @@ examples = [
 [project.scripts]
 lembas = "lembas.cli:app"
 
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no\\s*cover",
+  # This covers both typing.TYPE_CHECKING and plain TYPE_CHECKING, with any amount of whitespace
+  "if\\s+(typing\\.)?TYPE_CHECKING:",
+  'if __name__ == "__main__":'
+]
+
 [tool.isort]
 force_single_line = true
 profile = "black"

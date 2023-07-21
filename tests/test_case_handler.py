@@ -25,7 +25,7 @@ class MyCase(Case):
     def second_step(self) -> None:
         """Set has_been_run to True."""
         if not self.first_step_has_been_run:
-            raise RuntimeError  # pragma: nocover
+            raise RuntimeError  # pragma: no cover
         self.second_step_has_been_run = True
 
     @step
