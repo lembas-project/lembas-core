@@ -19,7 +19,8 @@ ci = ["lembas[dev]"]
 dev = [
   "pytest<=7.2",
   "pytest-cov<=3.1",
-  "mypy"
+  "mypy",
+  "jinja2<3.1.0"
 ]
 docs = [
   "myst-parser",
