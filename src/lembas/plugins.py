@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import sys
 from pathlib import Path
 from types import ModuleType
+
+from rich import print
+
+from lembas import Case
+
+registry: dict[str, type[Case]] = {}
 
 
 def _load_module_from_path(mod_path: Path) -> ModuleType:
@@ -27,3 +34,22 @@ def _load_module_from_path(mod_path: Path) -> ModuleType:
     sys.modules[mod_name] = mod
     spec.loader.exec_module(mod)
     return mod
+
+
+def load_plugins_from_file(plugin_path: Path) -> None:
+    """Load all defined plugins from a module from a filesystem Path.
+
+    Args:
+        plugin_path: A path to the `.py` file containing the `Case` subclasses.
+
+    """
+
+    print("Loading plugins")
+    plugin_path = plugin_path.resolve()
+    mod = _load_module_from_path(plugin_path)
+
+    for name, obj in mod.__dict__.items():
+        if inspect.isclass(obj):
+            if issubclass(obj, Case) and obj != Case:
+                registry[name] = obj
+                print(f"Found [bold]{name}[/bold] in {plugin_path}")

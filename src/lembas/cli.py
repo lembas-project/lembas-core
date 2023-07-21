@@ -8,7 +8,8 @@ import typer
 from rich.console import Console
 
 from lembas._version import __version__
-from lembas.plugins import _load_module_from_path
+from lembas.plugins import load_plugins_from_file
+from lembas.plugins import registry
 
 console = Console()
 app = typer.Typer(add_completion=False)
@@ -52,21 +53,17 @@ def run(
     case_handler_name: str,
     params: Optional[list[str]] = typer.Argument(None),
     *,
-    plugin: Optional[str] = None,
+    plugin: Optional[Path] = None,
 ) -> None:
-    if plugin is None:
-        raise Abort("We must currently specify a plugin")
-
-    print("Attempting to load plugins")
-    plugin_path = Path(plugin).resolve()
-    mod = _load_module_from_path(plugin_path)
+    if plugin is not None:
+        load_plugins_from_file(plugin)
 
     try:
-        class_ = getattr(mod, case_handler_name)
-    except AttributeError:
-        raise Abort(f"Could not find [bold]{case_handler_name}[/bold] in {plugin_path}")
-    else:
-        print(f"Found [bold]{case_handler_name}[/bold] in {plugin_path}")
+        class_ = registry[case_handler_name]
+    except KeyError:
+        raise Abort(
+            f"Could not find [bold]{case_handler_name}[/bold] in the plugin registry"
+        )
 
     data = {}
     for param in params or []:
