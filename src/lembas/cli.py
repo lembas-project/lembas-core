@@ -14,7 +14,6 @@ from lembas.plugins import registry
 
 console = Console()
 app = typer.Typer(add_completion=False)
-print = console.print
 
 
 class Okay(typer.Exit):
@@ -73,9 +72,9 @@ def run(
         data[key] = value
 
     case = class_(**data)
-    print(case)
+    console.print(case)
 
-    print("Running the case")
+    console.print("Running the case")
     case.run()
 
     raise Okay("Case complete")
