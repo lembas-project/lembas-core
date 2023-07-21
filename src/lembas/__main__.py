@@ -1,3 +1,3 @@
-from lembas.main import run
+from lembas.cli import app
 
-run()
+app()
