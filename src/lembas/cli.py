@@ -23,7 +23,7 @@ class Okay(typer.Exit):
     """
 
     def __init__(self, msg: str = "", *args: Any, **kwargs: Any):
-        print(f"OK. {msg}".rstrip(), style="green")
+        print(msg.strip(), style="green")
         super().__init__(*args, **kwargs)
 
 
@@ -50,7 +50,7 @@ def main(
 @app.command()
 def run(
     case_handler_name: str,
-    params: list[str],
+    params: Optional[list[str]] = typer.Argument(None),
     *,
     plugin: Optional[str] = None,
 ) -> None:
@@ -72,9 +72,11 @@ def run(
     for param in params or []:
         key, value = param.split("=")
         data[key] = value
-    print(f"Case data: {data}")
+
+    case = class_(**data)
+    print(case)
 
     print("Running the case")
-    case = class_(**data)
     case.run()
+
     raise Okay("Case complete")
