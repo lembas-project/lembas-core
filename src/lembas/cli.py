@@ -50,9 +50,9 @@ def main(
 @app.command()
 def run(
     case_handler_name: str,
+    params: list[str],
     *,
     plugin: Optional[str] = None,
-    params: Optional[list[str]] = None,
 ) -> None:
     if plugin is None:
         raise Abort("We must currently specify a plugin")
