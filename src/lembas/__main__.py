@@ -1,3 +1,3 @@
-from lembas.cli import app
+from lembas.cli import app  # pragma: no cover
 
-app()
+app()  # pragma: no cover
