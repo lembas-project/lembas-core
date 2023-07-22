@@ -45,7 +45,7 @@ exclude_lines = [
   "if\\s+(typing\\.)?TYPE_CHECKING:",
   'if __name__ == "__main__":'
 ]
-omit = ["src/**/__main__.py"]
+omit = ["src/lembas/__main__.py"]
 
 [tool.isort]
 force_single_line = true
