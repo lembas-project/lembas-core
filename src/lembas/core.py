@@ -194,6 +194,14 @@ class Case:
         for name, value in kwargs.items():
             setattr(self, name, value)
 
+    def __str__(self) -> str:
+        cls = self.__class__
+        lines = [f"{cls.__name__}:"]
+        for name, value in cls.__dict__.items():
+            if isinstance(value, InputParameter):
+                lines.append(f"  - {name}: {getattr(self, name)}")
+        return "\n".join(lines)
+
     @property
     def _sorted_steps(self) -> Iterator[CaseStep]:
         """Yield the case steps in order, with proper sorting of dependencies."""

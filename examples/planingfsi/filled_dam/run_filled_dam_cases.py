@@ -14,12 +14,9 @@ import numpy as np
 import pandas
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
-from planingfsi import FlexibleSubstructure
+from planingfsi import FlexibleMembraneSubstructure
 from planingfsi import Mesh
 from planingfsi import Simulation
-from planingfsi.fe.felib import Element
-from planingfsi.fe.felib import Node
-from planingfsi.fe.substructure import Substructure
 
 from lembas import Case
 from lembas import CaseList
@@ -91,12 +88,6 @@ class HydrostaticDamCase(Case):
 
     @step(condition=lambda case: not case.case_dir.exists())
     def run(self) -> None:
-        # TODO: This can go away once we fix planingfsi
-        Node._Node__all.clear()
-        Element._Element__all.clear()
-        Substructure._Substructure__all.clear()
-        FlexibleSubstructure._FlexibleSubstructure__all.clear()
-
         mesh = self.generate_mesh()
 
         simulation = Simulation()
@@ -110,7 +101,7 @@ class HydrostaticDamCase(Case):
 
         body = simulation.add_rigid_body()
         body.add_substructure(
-            FlexibleSubstructure(
+            FlexibleMembraneSubstructure(
                 name="dam",
                 seal_pressure_method="hydrostatic",
             )

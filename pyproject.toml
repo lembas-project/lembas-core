@@ -3,7 +3,11 @@ build-backend = "setuptools.build_meta"
 requires = ["setuptools>=42", "setuptools-scm[toml]>=6.2"]
 
 [project]
-dependencies = []
+dependencies = [
+  "pluggy <=1.1",
+  "typer <0.10",
+  "rich <14"
+]
 description = "Lifecycle Engineering Model-Based Analysis System"
 dynamic = ["version"]
 license = {text = "MIT"}
@@ -15,7 +19,8 @@ ci = ["lembas[dev]"]
 dev = [
   "pytest<=7.4.0",
   "pytest-cov<=4.1.0",
-  "mypy"
+  "mypy",
+  "jinja2<3.1.0"
 ]
 docs = [
   "myst-parser",
@@ -26,8 +31,19 @@ docs = [
   "toml"
 ]
 examples = [
-  "planingfsi @ git+https://github.com/mattkram/planingfsi.git@main",
+  "planingfsi",
   "pandas <= 1.5"
+]
+
+[project.scripts]
+lembas = "lembas.cli:app"
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no\\s*cover",
+  # This covers both typing.TYPE_CHECKING and plain TYPE_CHECKING, with any amount of whitespace
+  "if\\s+(typing\\.)?TYPE_CHECKING:",
+  'if __name__ == "__main__":'
 ]
 
 [tool.isort]
