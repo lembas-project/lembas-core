@@ -122,3 +122,7 @@ for ch in pm.hook.lembas_case_handlers():
         ch = [ch]
     for cls in ch:
         registry.add(cls)
+
+# Also, load any subclasses that were registered during imports
+for cls in Case.__subclasses__():
+    registry.add(cls)
