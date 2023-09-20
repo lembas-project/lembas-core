@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import itertools
 import types
 from collections.abc import Callable
@@ -118,6 +119,10 @@ class CaseStep:
             [requires] if isinstance(requires, str) else list(requires or [])
         )
 
+    @property
+    def name(self) -> str:
+        return self._func.__name__
+
     def __call__(self, instance: Case) -> None:
         if self._condition is None or self._condition(instance):
             return self._func(instance)
@@ -201,6 +206,13 @@ class Case:
             if isinstance(value, InputParameter):
                 lines.append(f"  - {name}: {getattr(self, name)}")
         return "\n".join(lines)
+
+    @property
+    def casehandler_full_name(self) -> str:
+        cls = self.__class__
+        mod = inspect.getmodule(cls)
+        mod_prefix = mod.__name__ + "." if mod is not None else ""
+        return mod_prefix + cls.__qualname__
 
     @property
     def _sorted_steps(self) -> Iterator[CaseStep]:
