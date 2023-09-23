@@ -14,14 +14,9 @@ import numpy as np
 import pandas
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
-from planingfsi import FlexibleMembraneSubstructure
-from planingfsi import Mesh
-from planingfsi import Simulation
+from planingfsi import FlexibleMembraneSubstructure, Mesh, Simulation
 
-from lembas import Case
-from lembas import CaseList
-from lembas import InputParameter
-from lembas import step
+from lembas import Case, CaseList, InputParameter, step
 
 BASE_DIR = Path(__file__).parent
 

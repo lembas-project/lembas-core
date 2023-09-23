@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 from rich.console import Console
 
 from lembas._version import __version__
-from lembas.plugins import CaseHandlerNotFound
-from lembas.plugins import load_plugins_from_file
-from lembas.plugins import registry
+from lembas.plugins import (CaseHandlerNotFound, load_plugins_from_file,
+                            registry)
 
 console = Console()
 app = typer.Typer(add_completion=False)

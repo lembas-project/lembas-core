@@ -4,9 +4,7 @@ from typing import Any
 
 import pytest
 
-from lembas import Case
-from lembas import InputParameter
-from lembas import step
+from lembas import Case, InputParameter, step
 from lembas.core import CaseList
 
 
