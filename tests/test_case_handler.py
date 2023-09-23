@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pytest
+import toml
 
 from lembas import Case
 from lembas import InputParameter
@@ -107,6 +109,19 @@ def test_case_inputs_dict(case: MyCase) -> None:
         "param_with_default": 10.0,
         "required_param": 4.0,
         "second_step_has_been_run": False,
+    }
+
+
+def test_case_lembas_toml(case: MyCase, tmp_path: Path) -> None:
+    case.case_dir = tmp_path
+    case.required_param = 4.0
+    assert case.case_dir == tmp_path
+    case._write_lembas_file()
+    assert (tmp_path / "lembas-case.toml").exists()
+    with (tmp_path / "lembas-case.toml").open("r") as fp:
+        data = toml.load(fp)
+    assert data == {
+        "lembas": {"inputs": case.inputs, "case-handler": case.casehandler_full_name}
     }
 
 
