@@ -4,7 +4,9 @@ from typing import Any
 
 import pytest
 
-from lembas import Case, InputParameter, step
+from lembas import Case
+from lembas import InputParameter
+from lembas import step
 from lembas.core import CaseList
 
 
@@ -71,6 +73,10 @@ def test_case_step_docstring(case: MyCase) -> None:
     assert case.second_step.__doc__ == "Set has_been_run to True."
 
 
+def test_case_step_name(case: MyCase) -> None:
+    assert case.change_param_with_default.name == "change_param_with_default"
+
+
 def test_case_step_condition_is_not_met(case: MyCase) -> None:
     """If we don't set the case.my_param, the step shouldn't run."""
     case.change_param_with_default()
@@ -87,6 +93,21 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
 def test_case_steps_order(case: MyCase) -> None:
     step_names = [step._func.__name__ for step in case._sorted_steps]
     assert step_names == ["first_step", "second_step", "change_param_with_default"]
+
+
+def test_casehandler_full_name(case: MyCase) -> None:
+    assert case.casehandler_full_name == "test_case_handler.MyCase"
+
+
+def test_case_inputs_dict(case: MyCase) -> None:
+    case.required_param = 4.0
+    assert case.inputs == {
+        "first_step_has_been_run": False,
+        "my_param": 3.0,
+        "param_with_default": 10.0,
+        "required_param": 4.0,
+        "second_step_has_been_run": False,
+    }
 
 
 @pytest.fixture()
