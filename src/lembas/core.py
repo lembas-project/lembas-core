@@ -2,17 +2,33 @@ from __future__ import annotations
 
 import inspect
 import itertools
+import logging
 import types
 from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Iterator
 from functools import WRAPPER_ASSIGNMENTS
+from functools import cached_property
+from pathlib import Path
 from typing import Any
 from typing import ClassVar
 from typing import Generic
+from typing import Optional
 from typing import TypeVar
 
+import toml
+from rich.logging import RichHandler
+
 __all__ = ["InputParameter", "Case", "CaseList", "step"]
+
+FORMAT = "%(message)s"
+logging.basicConfig(
+    level="NOTSET",
+    format=FORMAT,
+    datefmt="[%X]",
+    handlers=[RichHandler(show_level=False, show_path=False, show_time=False)],
+)
+logger = logging.getLogger(__name__)
 
 
 class _NoDefault:
@@ -207,12 +223,30 @@ class Case:
                 lines.append(f"  - {name}: {getattr(self, name)}")
         return "\n".join(lines)
 
+    @staticmethod
+    def log(msg: str, *args: Any, level: int = logging.INFO) -> None:
+        """Log a message to the logger."""
+        logger.log(level, msg, *args)
+
     @property
     def casehandler_full_name(self) -> str:
         cls = self.__class__
         mod = inspect.getmodule(cls)
         mod_prefix = mod.__name__ + "." if mod is not None else ""
         return mod_prefix + cls.__qualname__
+
+    @cached_property
+    def case_dir(self) -> Optional[Path]:
+        return None
+
+    @property
+    def inputs(self) -> dict[str, Any]:
+        attr_names = [
+            k
+            for k, v in self.__class__.__dict__.items()
+            if isinstance(v, InputParameter)
+        ]
+        return {n: getattr(self, n) for n in attr_names}
 
     @property
     def _sorted_steps(self) -> Iterator[CaseStep]:
@@ -225,6 +259,14 @@ class Case:
                     self._completed_steps.add(name)
                     break
 
+    def _write_lembas_file(self) -> None:
+        if self.case_dir:
+            self.log("Creating case directory: %s", self.case_dir)
+            self.case_dir.mkdir(parents=True, exist_ok=True)
+            data = {"inputs": self.inputs, "case-handler": self.casehandler_full_name}
+            with (self.case_dir / "lembas-case.toml").open("w") as fp:
+                toml.dump({"lembas": data}, fp)
+
     def run(self) -> None:
         """Run the case.
 
@@ -232,6 +274,8 @@ class Case:
         decorated with ``@step``.
 
         """
+        self.log("Running %s", self)
+        self._write_lembas_file()
         for step_method in self._sorted_steps:
             step_method(self)
 
