@@ -4,10 +4,17 @@ import inspect
 import itertools
 import logging
 import types
-from collections.abc import Callable, Iterable, Iterator
-from functools import WRAPPER_ASSIGNMENTS, cached_property
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Iterator
+from functools import WRAPPER_ASSIGNMENTS
+from functools import cached_property
 from pathlib import Path
-from typing import Any, ClassVar, Generic, Optional, TypeVar
+from typing import Any
+from typing import ClassVar
+from typing import Generic
+from typing import Optional
+from typing import TypeVar
 
 import toml
 from rich.logging import RichHandler

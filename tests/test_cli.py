@@ -2,14 +2,18 @@ from __future__ import annotations
 
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
+from typing import Callable
 
 import pytest
-from typer.testing import CliRunner, Result
+from typer.testing import CliRunner
+from typer.testing import Result
 
-from lembas import Case, __version__
+from lembas import Case
+from lembas import __version__
 from lembas.cli import app
-from lembas.plugins import _load_module_from_path, registry
+from lembas.plugins import _load_module_from_path
+from lembas.plugins import registry
 
 if TYPE_CHECKING:
     from _pytest.monkeypatch import MonkeyPatch
