@@ -7,7 +7,9 @@ from collections.abc import Iterator
 from pathlib import Path
 from types import ModuleType
 
-from pluggy import HookimplMarker, HookspecMarker, PluginManager
+from pluggy import HookimplMarker
+from pluggy import HookspecMarker
+from pluggy import PluginManager
 from rich import print
 
 from lembas import Case
@@ -100,7 +102,7 @@ register = HookimplMarker("lembas")
 @hookspec
 def lembas_case_handlers() -> Iterator[type[Case]]:
     """In a plugin package, yield multiple case handlers from this function."""
-    yield Case
+    yield Case  # pragma: no cover
 
 
 # Create the default PluginManager
@@ -114,7 +116,7 @@ loaded = pm.load_setuptools_entrypoints("lembas")
 
 # Register the case handlers from plugins that have been loaded and used the `lembas_case_handlers` hook.
 case_handlers = pm.hook.lembas_case_handlers()
-for ch in pm.hook.lembas_case_handlers():
+for ch in pm.hook.lembas_case_handlers():  # pragma: no cover
     # Handle the case where we return a single case handler instead of using a generator
     if inspect.isclass(ch):
         ch = [ch]
