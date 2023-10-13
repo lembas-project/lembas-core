@@ -98,7 +98,7 @@ def test_case_steps_order(case: MyCase) -> None:
 
 
 def test_casehandler_full_name(case: MyCase) -> None:
-    assert case.casehandler_full_name == "test_case_handler.MyCase"
+    assert case.fully_resolved_name == "test_case_handler.MyCase"
 
 
 def test_case_inputs_dict(case: MyCase) -> None:
@@ -121,7 +121,7 @@ def test_case_lembas_toml(case: MyCase, tmp_path: Path) -> None:
     with (tmp_path / "lembas-case.toml").open("r") as fp:
         data = toml.load(fp)
     assert data == {
-        "lembas": {"inputs": case.inputs, "case-handler": case.casehandler_full_name}
+        "lembas": {"inputs": case.inputs, "case-handler": case.fully_resolved_name}
     }
 
 

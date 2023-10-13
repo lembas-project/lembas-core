@@ -129,6 +129,7 @@ class CaseStep:
 
     @property
     def name(self) -> str:
+        """The name of the case step."""
         return self._func.__name__
 
     def __call__(self, instance: Case) -> None:
@@ -221,7 +222,8 @@ class Case:
         logger.log(level, msg, *args)
 
     @property
-    def casehandler_full_name(self) -> str:
+    def fully_resolved_name(self) -> str:
+        """The fully-resolved import path of the case handler."""
         cls = self.__class__
         mod = inspect.getmodule(cls)
         mod_prefix = mod.__name__ + "." if mod is not None else ""
@@ -255,7 +257,7 @@ class Case:
         if self.case_dir:
             self.log("Creating case directory: %s", self.case_dir)
             self.case_dir.mkdir(parents=True, exist_ok=True)
-            data = {"inputs": self.inputs, "case-handler": self.casehandler_full_name}
+            data = {"inputs": self.inputs, "case-handler": self.fully_resolved_name}
             with (self.case_dir / "lembas-case.toml").open("w") as fp:
                 toml.dump({"lembas": data}, fp)
 
