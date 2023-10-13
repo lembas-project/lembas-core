@@ -14,6 +14,8 @@ from rich import print
 
 from lembas import Case
 
+__all__ = ["register", "registry", "load_plugins_from_file", "CaseHandlerNotFound"]
+
 
 class CaseHandlerNotFound(AttributeError):
     pass
@@ -108,7 +110,7 @@ def lembas_case_handlers() -> Iterator[type[Case]]:
 # Create the default PluginManager
 pm = PluginManager("lembas")
 
-# Register the hooks specifications available for PyScript Plugins
+# Register the hooks specifications available for lembas plugins
 pm.add_hookspecs(sys.modules[__name__])
 
 # Load plugins registered via setuptools entrypoints
