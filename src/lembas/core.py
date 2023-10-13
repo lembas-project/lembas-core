@@ -17,18 +17,10 @@ from typing import Optional
 from typing import TypeVar
 
 import toml
-from rich.logging import RichHandler
 
 __all__ = ["InputParameter", "Case", "CaseList", "step"]
 
-FORMAT = "%(message)s"
-logging.basicConfig(
-    level="NOTSET",
-    format=FORMAT,
-    datefmt="[%X]",
-    handlers=[RichHandler(show_level=False, show_path=False, show_time=False)],
-)
-logger = logging.getLogger(__name__)
+from lembas.logging import logger
 
 
 class _NoDefault:
