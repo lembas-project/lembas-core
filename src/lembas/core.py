@@ -129,7 +129,7 @@ class CaseStep:
             [requires] if isinstance(requires, str) else list(requires or [])
         )
 
-    @property
+    @cached_property
     def name(self) -> str:
         """The name of the case step."""
         return self._func.__name__
@@ -242,6 +242,7 @@ class Case:
 
     @property
     def inputs(self) -> dict[str, Any]:
+        """A mapping of the name of each InputAttribute to its value."""
         attr_names = [
             k
             for k, v in self.__class__.__dict__.items()
