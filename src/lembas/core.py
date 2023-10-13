@@ -18,9 +18,11 @@ from typing import TypeVar
 
 import toml
 
+from lembas.logging import logger
+
 __all__ = ["InputParameter", "Case", "CaseList", "step"]
 
-from lembas.logging import logger
+LEMBAS_CASE_TOML_FILENAME = "lembas-case.toml"
 
 
 class _NoDefault:
@@ -231,6 +233,11 @@ class Case:
 
     @cached_property
     def case_dir(self) -> Optional[Path]:
+        f"""An optional property that can be set for a subclass.
+
+        If set, the `{LEMBAS_CASE_TOML_FILENAME}` file will be written in this directory.
+
+        """
         return None
 
     @property
@@ -254,12 +261,15 @@ class Case:
                     break
 
     def _write_lembas_file(self) -> None:
-        if self.case_dir:
-            self.log("Creating case directory: %s", self.case_dir)
-            self.case_dir.mkdir(parents=True, exist_ok=True)
-            data = {"inputs": self.inputs, "case-handler": self.fully_resolved_name}
-            with (self.case_dir / "lembas-case.toml").open("w") as fp:
-                toml.dump({"lembas": data}, fp)
+        """Write a file in the case directory specifying the case handler and all input values used."""
+        if not self.case_dir:
+            return None
+
+        self.log("Creating case directory: %s", self.case_dir)
+        self.case_dir.mkdir(parents=True, exist_ok=True)
+        data = {"inputs": self.inputs, "case-handler": self.fully_resolved_name}
+        with (self.case_dir / LEMBAS_CASE_TOML_FILENAME).open("w") as fp:
+            toml.dump({"lembas": data}, fp)
 
     def run(self) -> None:
         """Run the case.
