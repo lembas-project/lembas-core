@@ -34,10 +34,6 @@ class InputParameter:
     """
 
     _name: str
-    _type: type | None
-    _min_value: float | None
-    _max_value: float | None
-    _control: bool
 
     def __init__(
         self,
