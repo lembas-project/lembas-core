@@ -4,12 +4,11 @@ from rich.logging import RichHandler
 
 __all__ = ["logger"]
 
-FORMAT = "%(message)s"
-logger = logging.getLogger(__name__)
-
 logging.basicConfig(
     level="NOTSET",
-    format=FORMAT,
+    format="%(message)s",
     datefmt="[%X]",
     handlers=[RichHandler(show_level=False, show_path=False, show_time=False)],
 )
+
+logger = logging.getLogger("lembas")
