@@ -7,9 +7,9 @@ import pytest
 import toml
 
 from lembas import Case
+from lembas import CaseList
 from lembas import InputParameter
 from lembas import step
-from lembas.core import CaseList
 
 
 class MyCase(Case):

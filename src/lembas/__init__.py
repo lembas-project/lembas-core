@@ -1,7 +1,7 @@
 from lembas._version import __version__
-from lembas.core import Case
-from lembas.core import CaseList
-from lembas.core import InputParameter
-from lembas.core import step
+from lembas.case import Case
+from lembas.case import CaseList
+from lembas.case import step
+from lembas.param import InputParameter
 
 __all__ = ["Case", "CaseList", "InputParameter", "step", "__version__"]

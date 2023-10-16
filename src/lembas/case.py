@@ -19,97 +19,11 @@ from typing import TypeVar
 import toml
 
 from lembas.logging import logger
+from lembas.param import InputParameter
 
-__all__ = ["InputParameter", "Case", "CaseList", "step"]
+__all__ = ["Case", "CaseList", "step"]
 
 LEMBAS_CASE_TOML_FILENAME = "lembas-case.toml"
-
-
-class _NoDefault:
-    """Used as a sentinel to indicate lack of a default value for an `InputAttribute`."""
-
-
-_builtin_type = type
-
-
-class InputParameter:
-    """An input parameter which can be defined for a ``Case``, which determines case-specific values.
-
-    The parameter is of a defined type and type conversion will be performed when setting the value,
-    if appropriate.
-
-    Args:
-        type: The parameter type, e.g. ``float``, ``str``, etc.
-        default: The default value. If the type is not set, the type of the default will be used.
-        min: The minimum value for the parameter (if it is a float).
-        max: The maximum value for the parameter (if it is a float).
-
-    """
-
-    _name: str
-    _type: type | None
-    _min_value: float | None
-    _max_value: float | None
-
-    def __init__(
-        self,
-        *,
-        type: type | None = None,
-        default: Any = _NoDefault,
-        min: float | None = None,
-        max: float | None = None,
-    ):
-        if type is not None:
-            self._type = type
-        elif default != _NoDefault:
-            self._type = _builtin_type(default)
-        else:
-            raise TypeError(
-                "An 'InputParameter' must either explicitly set the type, or have a default value to infer it from."
-            )
-
-        self._default = default
-        self._min_value = min
-        self._max_value = max
-
-    def __set_name__(self, owner: type[Case], name: str) -> None:
-        self._name = name
-
-    def __set__(self, instance: object, value: Any) -> None:
-        if self._type is not None:
-            value = self._type(value)
-
-        if self._min_value is not None and value < self._min_value:
-            raise ValueError(
-                "Specified value less than minimum for attribute "
-                f"'{self._name}': ({value} < {self._min_value})"
-            )
-
-        if self._max_value is not None and value > self._max_value:
-            raise ValueError(
-                "Specified value exceeds maximum for attribute "
-                f"'{self._name}': ({value} > {self._max_value})"
-            )
-
-        instance.__dict__[self._name] = value
-
-    def __get__(self, instance: Case, owner: type[Case]) -> Any:
-        """Retrieve the attribute from the instance dictionary.
-
-        If the value hasn't been set, we attempt to return a default, unless there is no default,
-        in which case we raise an AttributeError.
-
-        """
-        try:
-            return instance.__dict__[self._name]
-        except KeyError:
-            if self._default == _NoDefault:
-                raise AttributeError(
-                    f"'{self._name}' attribute of '{owner.__name__}' class "
-                    "has no default value and must be specified explicitly"
-                )
-            return self._default
-
 
 TCase = TypeVar("TCase", bound="Case")
 RawCaseStepMethod = Callable[[TCase], None]
@@ -147,46 +61,6 @@ class CaseStep:
 
         """
         return types.MethodType(self, instance)
-
-
-def step(
-    method: RawCaseStepMethod | None = None,
-    /,
-    condition: Callable[[Any], bool] | None = None,
-    requires: str | Iterable[str] | None = None,
-) -> Any:
-    """A decorator to define steps to be performed when running a `Case`.
-
-    The step should not return a value.
-
-    Args:
-        method: The decorator may be used without any arguments, in which case the defaults
-            will be used.
-        condition: an optional callable which can be used to determine whether the step should run.
-            It will receive the `Case` instance as its only argument, and must return a boolean
-            which, if True, the step will run. Otherwise, it will be skipped.
-        requires: An iterable of dependent steps on which this one depends, or a single string.
-
-    Usage:
-        .. code-block::
-
-            class MyCase(Case):
-                @step(condition=lambda case: case.case_dir.exists())
-                def some_analysis_step(self):
-                    # do something
-
-    """
-
-    def decorator(f: RawCaseStepMethod) -> CaseStep:
-        new_method = CaseStep(f, condition=condition, requires=requires)
-        # This is largely a replica of functools.wraps, which doesn't seem to work
-        for attr in WRAPPER_ASSIGNMENTS:
-            setattr(new_method, attr, getattr(f, attr, None))
-        return new_method
-
-    if method is not None:  # handle case where there are no arguments
-        return decorator(method)
-    return decorator
 
 
 class Case:
@@ -364,3 +238,43 @@ class CaseList(Generic[TCase]):
     def __iter__(self) -> Iterator[TCase]:
         for case in self._cases:
             yield case
+
+
+def step(
+    method: RawCaseStepMethod | None = None,
+    /,
+    condition: Callable[[Any], bool] | None = None,
+    requires: str | Iterable[str] | None = None,
+) -> Any:
+    """A decorator to define steps to be performed when running a `Case`.
+
+    The step should not return a value.
+
+    Args:
+        method: The decorator may be used without any arguments, in which case the defaults
+            will be used.
+        condition: an optional callable which can be used to determine whether the step should run.
+            It will receive the `Case` instance as its only argument, and must return a boolean
+            which, if True, the step will run. Otherwise, it will be skipped.
+        requires: An iterable of dependent steps on which this one depends, or a single string.
+
+    Usage:
+        .. code-block::
+
+            class MyCase(Case):
+                @step(condition=lambda case: case.case_dir.exists())
+                def some_analysis_step(self):
+                    # do something
+
+    """
+
+    def decorator(f: RawCaseStepMethod) -> CaseStep:
+        new_method = CaseStep(f, condition=condition, requires=requires)
+        # This is largely a replica of functools.wraps, which doesn't seem to work
+        for attr in WRAPPER_ASSIGNMENTS:
+            setattr(new_method, attr, getattr(f, attr, None))
+        return new_method
+
+    if method is not None:  # handle case where there are no arguments
+        return decorator(method)
+    return decorator
