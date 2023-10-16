@@ -74,7 +74,6 @@ def run(
     case = class_(**data)
     console.print(case)
 
-    console.print("Running the case")
     case.run()
 
     raise Okay("Case complete")
