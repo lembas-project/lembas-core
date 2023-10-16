@@ -1,17 +1,28 @@
 from __future__ import annotations
 
+import inspect
 import itertools
+import logging
 import types
 from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Iterator
 from functools import WRAPPER_ASSIGNMENTS
+from functools import cached_property
+from pathlib import Path
 from typing import Any
 from typing import ClassVar
 from typing import Generic
+from typing import Optional
 from typing import TypeVar
 
+import toml
+
+from lembas.logging import logger
+
 __all__ = ["InputParameter", "Case", "CaseList", "step"]
+
+LEMBAS_CASE_TOML_FILENAME = "lembas-case.toml"
 
 
 class _NoDefault:
@@ -118,6 +129,11 @@ class CaseStep:
             [requires] if isinstance(requires, str) else list(requires or [])
         )
 
+    @cached_property
+    def name(self) -> str:
+        """The name of the case step."""
+        return self._func.__name__
+
     def __call__(self, instance: Case) -> None:
         if self._condition is None or self._condition(instance):
             return self._func(instance)
@@ -202,6 +218,54 @@ class Case:
                 lines.append(f"  - {name}: {getattr(self, name)}")
         return "\n".join(lines)
 
+    @staticmethod
+    def log(msg: str, *args: Any, level: int = logging.INFO) -> None:
+        """Log a message to the logger."""
+        logger.log(level, msg, *args)
+
+    @property
+    def fully_resolved_name(self) -> str:
+        """The fully-resolved import path of the case handler."""
+        cls = self.__class__
+        mod = inspect.getmodule(cls)
+        mod_prefix = mod.__name__ + "." if mod is not None else ""
+        return mod_prefix + cls.__qualname__
+
+    @cached_property
+    def case_dir(self) -> Optional[Path]:
+        f"""An optional property that can be set for a subclass.
+
+        If set, the `{LEMBAS_CASE_TOML_FILENAME}` file will be written in this directory.
+
+        """
+        return None
+
+    @cached_property
+    def relative_case_dir(self) -> Optional[Path]:
+        """Return a case directory relative to current working directory if possible.
+
+        If the case directory is not a subdirectory of current working directory, the absolute
+        path is returned.
+
+        """
+        if self.case_dir is None:
+            return None
+
+        try:
+            return self.case_dir.relative_to(Path.cwd())
+        except ValueError:
+            return self.case_dir
+
+    @property
+    def inputs(self) -> dict[str, Any]:
+        """A mapping of the name of each InputAttribute to its value."""
+        attr_names = (
+            k
+            for k, v in self.__class__.__dict__.items()
+            if isinstance(v, InputParameter)
+        )
+        return {n: getattr(self, n) for n in attr_names}
+
     @property
     def _sorted_steps(self) -> Iterator[CaseStep]:
         """Yield the case steps in order, with proper sorting of dependencies."""
@@ -213,6 +277,21 @@ class Case:
                     self._completed_steps.add(name)
                     break
 
+    def _write_lembas_file(self) -> None:
+        """Write a file in the case directory specifying the case handler and all input values used."""
+        if self.relative_case_dir is None:
+            return None
+
+        case_summary_file = self.relative_case_dir / LEMBAS_CASE_TOML_FILENAME
+        case_summary_file.parent.mkdir(parents=True, exist_ok=True)
+
+        self.log("Writing case summary to: %s", case_summary_file)
+        contents = {
+            "lembas": {"inputs": self.inputs, "case-handler": self.fully_resolved_name}
+        }
+        with case_summary_file.open("w") as fp:
+            toml.dump(contents, fp)
+
     def run(self) -> None:
         """Run the case.
 
@@ -220,6 +299,8 @@ class Case:
         decorated with ``@step``.
 
         """
+        self.log("Running %s", self)
+        self._write_lembas_file()
         for step_method in self._sorted_steps:
             step_method(self)
 

@@ -3,12 +3,18 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from types import ModuleType
 
+from pluggy import HookimplMarker
+from pluggy import HookspecMarker
+from pluggy import PluginManager
 from rich import print
 
 from lembas import Case
+
+__all__ = ["register", "registry", "load_plugins_from_file", "CaseHandlerNotFound"]
 
 
 class CaseHandlerNotFound(AttributeError):
@@ -89,3 +95,39 @@ def load_plugins_from_file(plugin_path: Path) -> None:
             if issubclass(obj, Case) and obj != Case:
                 registry.add(obj)
                 print(f"Found [bold]{name}[/bold] in {plugin_path}")
+
+
+hookspec = HookspecMarker("lembas")
+register = HookimplMarker("lembas")
+
+
+@hookspec
+def lembas_case_handlers() -> Iterator[type[Case]]:
+    """In a plugin package, yield multiple case handlers from this function."""
+    yield Case  # pragma: no cover
+
+
+def _load_plugins_via_entrypoints() -> None:
+    # Create the default PluginManager
+    pm = PluginManager("lembas")
+
+    # Register the hooks specifications available for lembas plugins
+    pm.add_hookspecs(sys.modules[__name__])
+
+    # Load plugins registered via setuptools entrypoints
+    pm.load_setuptools_entrypoints("lembas")
+
+    # Register the case handlers from plugins that have been loaded and used the `lembas_case_handlers` hook.
+    for ch in pm.hook.lembas_case_handlers():  # pragma: no cover
+        # Handle the case where we return a single case handler instead of using a generator
+        if inspect.isclass(ch):
+            ch = [ch]
+        for cls in ch:
+            registry.add(cls)
+
+    # Also, load any subclasses that were registered during imports
+    for cls in Case.__subclasses__():
+        registry.add(cls)
+
+
+_load_plugins_via_entrypoints()

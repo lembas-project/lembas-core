@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pytest
+import toml
 
 from lembas import Case
 from lembas import InputParameter
@@ -73,6 +75,10 @@ def test_case_step_docstring(case: MyCase) -> None:
     assert case.second_step.__doc__ == "Set has_been_run to True."
 
 
+def test_case_step_name(case: MyCase) -> None:
+    assert case.change_param_with_default.name == "change_param_with_default"
+
+
 def test_case_step_condition_is_not_met(case: MyCase) -> None:
     """If we don't set the case.my_param, the step shouldn't run."""
     case.change_param_with_default()
@@ -89,6 +95,46 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
 def test_case_steps_order(case: MyCase) -> None:
     step_names = [step._func.__name__ for step in case._sorted_steps]
     assert step_names == ["first_step", "second_step", "change_param_with_default"]
+
+
+def test_casehandler_full_name(case: MyCase) -> None:
+    assert case.fully_resolved_name == "test_case_handler.MyCase"
+
+
+def test_case_inputs_dict(case: MyCase) -> None:
+    case.required_param = 4.0
+    assert case.inputs == {
+        "first_step_has_been_run": False,
+        "my_param": 3.0,
+        "param_with_default": 10.0,
+        "required_param": 4.0,
+        "second_step_has_been_run": False,
+    }
+
+
+def test_case_lembas_toml(case: MyCase, tmp_path: Path) -> None:
+    case.case_dir = tmp_path
+    case.required_param = 4.0
+    assert case.case_dir == tmp_path
+    case._write_lembas_file()
+    assert (tmp_path / "lembas-case.toml").exists()
+    with (tmp_path / "lembas-case.toml").open("r") as fp:
+        data = toml.load(fp)
+    assert data == {
+        "lembas": {"inputs": case.inputs, "case-handler": case.fully_resolved_name}
+    }
+
+
+def test_case_relative_case_dir_is_absolute(case: MyCase, tmp_path: Path) -> None:
+    """If the case_dir is not relative to CWD, the relative_case_dir is an absolute path."""
+    case.case_dir = Path("/some/non-relative-path")
+    assert case.relative_case_dir == Path("/some/non-relative-path")
+
+
+def test_case_relative_case_dir_is_relative(case: MyCase, tmp_path: Path) -> None:
+    """If the case_dir is relative to CWD, the relative_case_dir is relative."""
+    case.case_dir = Path.cwd() / "some/relative-path"
+    assert case.relative_case_dir == Path("some/relative-path")
 
 
 @pytest.fixture()

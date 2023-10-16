@@ -1,0 +1,17 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=42"]
+
+[project]
+dependencies = [
+  "lembas",
+  "planingfsi"
+]
+description = "lembas-planingfsi plugin"
+license = {text = "MIT"}
+name = "lembas-planingfsi"
+requires-python = ">=3.9"
+version = "0.1.0"
+
+[project.entry-points.lembas]
+_ = "lembas_planingfsi"
