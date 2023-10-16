@@ -240,6 +240,22 @@ class Case:
         """
         return None
 
+    @cached_property
+    def relative_case_dir(self) -> Optional[Path]:
+        """Return a case directory relative to current working directory if possible.
+
+        If the case directory is not a subdirectory of current working directory, the absolute
+        path is returned.
+
+        """
+        if self.case_dir is None:
+            return None
+
+        try:
+            return self.case_dir.relative_to(Path.cwd())
+        except ValueError:
+            return self.case_dir
+
     @property
     def inputs(self) -> dict[str, Any]:
         """A mapping of the name of each InputAttribute to its value."""
@@ -263,11 +279,11 @@ class Case:
 
     def _write_lembas_file(self) -> None:
         """Write a file in the case directory specifying the case handler and all input values used."""
-        if not self.case_dir:
+        if self.relative_case_dir is None:
             return None
 
-        case_summary_file = self.case_dir / LEMBAS_CASE_TOML_FILENAME
-        self.case_dir.mkdir(parents=True, exist_ok=True)
+        case_summary_file = self.relative_case_dir / LEMBAS_CASE_TOML_FILENAME
+        case_summary_file.parent.mkdir(parents=True, exist_ok=True)
 
         self.log("Writing case summary to: %s", case_summary_file)
         contents = {

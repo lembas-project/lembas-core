@@ -125,6 +125,18 @@ def test_case_lembas_toml(case: MyCase, tmp_path: Path) -> None:
     }
 
 
+def test_case_relative_case_dir_is_absolute(case: MyCase, tmp_path: Path) -> None:
+    """If the case_dir is not relative to CWD, the relative_case_dir is an absolute path."""
+    case.case_dir = Path("/some/non-relative-path")
+    assert case.relative_case_dir == Path("/some/non-relative-path")
+
+
+def test_case_relative_case_dir_is_relative(case: MyCase, tmp_path: Path) -> None:
+    """If the case_dir is relative to CWD, the relative_case_dir is relative."""
+    case.case_dir = Path.cwd() / "some/relative-path"
+    assert case.relative_case_dir == Path("some/relative-path")
+
+
 @pytest.fixture()
 def case_list() -> CaseList:
     return CaseList()
