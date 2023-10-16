@@ -243,11 +243,11 @@ class Case:
     @property
     def inputs(self) -> dict[str, Any]:
         """A mapping of the name of each InputAttribute to its value."""
-        attr_names = [
+        attr_names = (
             k
             for k, v in self.__class__.__dict__.items()
             if isinstance(v, InputParameter)
-        ]
+        )
         return {n: getattr(self, n) for n in attr_names}
 
     @property
