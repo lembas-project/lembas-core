@@ -63,46 +63,6 @@ class CaseStep:
         return types.MethodType(self, instance)
 
 
-def step(
-    method: RawCaseStepMethod | None = None,
-    /,
-    condition: Callable[[Any], bool] | None = None,
-    requires: str | Iterable[str] | None = None,
-) -> Any:
-    """A decorator to define steps to be performed when running a `Case`.
-
-    The step should not return a value.
-
-    Args:
-        method: The decorator may be used without any arguments, in which case the defaults
-            will be used.
-        condition: an optional callable which can be used to determine whether the step should run.
-            It will receive the `Case` instance as its only argument, and must return a boolean
-            which, if True, the step will run. Otherwise, it will be skipped.
-        requires: An iterable of dependent steps on which this one depends, or a single string.
-
-    Usage:
-        .. code-block::
-
-            class MyCase(Case):
-                @step(condition=lambda case: case.case_dir.exists())
-                def some_analysis_step(self):
-                    # do something
-
-    """
-
-    def decorator(f: RawCaseStepMethod) -> CaseStep:
-        new_method = CaseStep(f, condition=condition, requires=requires)
-        # This is largely a replica of functools.wraps, which doesn't seem to work
-        for attr in WRAPPER_ASSIGNMENTS:
-            setattr(new_method, attr, getattr(f, attr, None))
-        return new_method
-
-    if method is not None:  # handle case where there are no arguments
-        return decorator(method)
-    return decorator
-
-
 class Case:
     """Base case for all cases.
 
@@ -278,3 +238,43 @@ class CaseList(Generic[TCase]):
     def __iter__(self) -> Iterator[TCase]:
         for case in self._cases:
             yield case
+
+
+def step(
+    method: RawCaseStepMethod | None = None,
+    /,
+    condition: Callable[[Any], bool] | None = None,
+    requires: str | Iterable[str] | None = None,
+) -> Any:
+    """A decorator to define steps to be performed when running a `Case`.
+
+    The step should not return a value.
+
+    Args:
+        method: The decorator may be used without any arguments, in which case the defaults
+            will be used.
+        condition: an optional callable which can be used to determine whether the step should run.
+            It will receive the `Case` instance as its only argument, and must return a boolean
+            which, if True, the step will run. Otherwise, it will be skipped.
+        requires: An iterable of dependent steps on which this one depends, or a single string.
+
+    Usage:
+        .. code-block::
+
+            class MyCase(Case):
+                @step(condition=lambda case: case.case_dir.exists())
+                def some_analysis_step(self):
+                    # do something
+
+    """
+
+    def decorator(f: RawCaseStepMethod) -> CaseStep:
+        new_method = CaseStep(f, condition=condition, requires=requires)
+        # This is largely a replica of functools.wraps, which doesn't seem to work
+        for attr in WRAPPER_ASSIGNMENTS:
+            setattr(new_method, attr, getattr(f, attr, None))
+        return new_method
+
+    if method is not None:  # handle case where there are no arguments
+        return decorator(method)
+    return decorator
