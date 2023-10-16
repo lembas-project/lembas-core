@@ -18,6 +18,7 @@ class MyCase(Case):
     required_param = InputParameter(type=float)
     first_step_has_been_run = InputParameter(default=False)
     second_step_has_been_run = InputParameter(default=False)
+    control_param = InputParameter(default=1.0, control=True)
 
     @step(condition=lambda self: self.my_param > 4, requires="second_step")
     def change_param_with_default(self) -> None:

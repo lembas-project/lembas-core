@@ -136,7 +136,7 @@ class Case:
         attr_names = (
             k
             for k, v in self.__class__.__dict__.items()
-            if isinstance(v, InputParameter)
+            if isinstance(v, InputParameter) and v.include_in_inputs_dict
         )
         return {n: getattr(self, n) for n in attr_names}
 

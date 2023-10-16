@@ -1,6 +1,7 @@
 """Custom parameter types that can be defined on `lembas.Case` instances."""
 from __future__ import annotations
 
+from functools import cached_property
 from typing import TYPE_CHECKING
 from typing import Any
 
@@ -27,13 +28,12 @@ class InputParameter:
         default: The default value. If the type is not set, the type of the default will be used.
         min: The minimum value for the parameter (if it is a float).
         max: The maximum value for the parameter (if it is a float).
+        control: Set as True to indicate a runtime control parameter.
+            These parameters will be excluded from the `case.inputs` dictionary.
 
     """
 
     _name: str
-    _type: type | None
-    _min_value: float | None
-    _max_value: float | None
 
     def __init__(
         self,
@@ -42,6 +42,7 @@ class InputParameter:
         default: Any = _NoDefault,
         min: float | None = None,
         max: float | None = None,
+        control: bool = False,
     ):
         if type is not None:
             self._type = type
@@ -55,6 +56,7 @@ class InputParameter:
         self._default = default
         self._min_value = min
         self._max_value = max
+        self._control = control
 
     def __set_name__(self, owner: type[Case], name: str) -> None:
         self._name = name
@@ -93,3 +95,8 @@ class InputParameter:
                     "has no default value and must be specified explicitly"
                 )
             return self._default
+
+    @cached_property
+    def include_in_inputs_dict(self) -> bool:
+        """If True, include the parameter in the `case.inputs` dictionary."""
+        return not self._control
