@@ -266,11 +266,15 @@ class Case:
         if not self.case_dir:
             return None
 
-        self.log("Creating case directory: %s", self.case_dir)
+        case_summary_file = self.case_dir / LEMBAS_CASE_TOML_FILENAME
         self.case_dir.mkdir(parents=True, exist_ok=True)
-        data = {"inputs": self.inputs, "case-handler": self.fully_resolved_name}
-        with (self.case_dir / LEMBAS_CASE_TOML_FILENAME).open("w") as fp:
-            toml.dump({"lembas": data}, fp)
+
+        self.log("Writing case summary to: %s", case_summary_file)
+        contents = {
+            "lembas": {"inputs": self.inputs, "case-handler": self.fully_resolved_name}
+        }
+        with case_summary_file.open("w") as fp:
+            toml.dump(contents, fp)
 
     def run(self) -> None:
         """Run the case.
