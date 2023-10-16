@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 if TYPE_CHECKING:
-    from lembas.core import Case
+    from lembas.case import Case
 
 
 # Create alias for built-in type function so that we can re-assign a variable with that name
