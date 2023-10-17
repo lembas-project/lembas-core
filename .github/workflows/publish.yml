@@ -86,7 +86,7 @@ jobs:
         path: ./conda-bld
     - name: publish
       env:
-        TOKEN: ${{ secrets.ANACONDA_ORG_UPLOAD_TOKEN }}
+        TOKEN: ${{ secrets.ANACONDA_ORG_TOKEN }}
       run: |
         source $CONDA/bin/activate && conda activate build
         [[ "$GITHUB_REF" =~ ^refs/tags/v ]] || export LABEL="--label dev"
@@ -115,7 +115,7 @@ jobs:
         path: ./dist
     - name: Upload to anaconda.org
       env:
-        TOKEN: ${{ secrets.ANACONDA_ORG_UPLOAD_TOKEN }}
+        TOKEN: ${{ secrets.ANACONDA_ORG_TOKEN }}
       run: |
         source $CONDA/bin/activate
         conda install -y anaconda-client
