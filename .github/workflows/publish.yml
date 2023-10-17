@@ -18,7 +18,7 @@ jobs:
     - name: conda build
       run: |
         source $CONDA/bin/activate && conda activate build
-        VERSION=`hatch version` conda build conda.recipe
+        VERSION=`python -m setuptools_scm` conda build conda.recipe
         mv $CONDA_PREFIX/conda-bld .
     - name: Upload the build artifact
       uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32     # v3
