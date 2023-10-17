@@ -57,5 +57,6 @@ jobs:
 
   publish:
     uses: ./.github/workflows/publish.yml
+    needs: [check]
     secrets: inherit
     if: ${{ always() }}
