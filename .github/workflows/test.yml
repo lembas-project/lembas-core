@@ -4,6 +4,8 @@ on:
   push:
     branches:
     - main
+    tags:
+    - v[0-9]+.[0-9]+.[0-9]+*
   pull_request:
   merge_group:
 
@@ -54,3 +56,9 @@ jobs:
       uses: re-actors/alls-green@release/v1
       with:
         jobs: ${{ toJSON(needs) }}
+
+  publish:
+    uses: ./.github/workflows/publish.yml
+    needs: [check]
+    secrets: inherit
+    if: ${{ github.ref == 'refs/heads/main' || startsWith(github.event.ref, 'refs/tags/v') }}
