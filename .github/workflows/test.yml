@@ -54,3 +54,8 @@ jobs:
       uses: re-actors/alls-green@release/v1
       with:
         jobs: ${{ toJSON(needs) }}
+
+  publish:
+    uses: ./.github/workflows/publish.yml
+    secrets: inherit
+    if: ${{ always() }}
