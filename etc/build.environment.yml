@@ -1,0 +1,13 @@
+dependencies:
+- python=3.10
+- conda-build
+- hatch
+- hatchling
+- hatch-vcs>=0.3
+- setuptools-scm>=7.1
+- anaconda-client>=1.12.0
+channels:
+- defaults
+- conda-forge
+platforms:
+- linux-64
