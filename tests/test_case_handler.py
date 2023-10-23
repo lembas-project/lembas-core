@@ -16,12 +16,13 @@ class MyCase(Case):
     my_param = InputParameter(type=float, min=2.0, max=5.0)
     param_with_default = InputParameter(default=10.0)
     required_param = InputParameter(type=float)
-    first_step_has_been_run = InputParameter(default=False)
-    second_step_has_been_run = InputParameter(default=False)
     control_param = InputParameter(default=1.0, control=True)
     control_param_true = InputParameter(default=True, control=True)
     control_param_false = InputParameter(default=False, control=True)
 
+    # Attributes used to check whether steps have been run
+    first_step_has_been_run = False
+    second_step_has_been_run = False
     step_has_been_triggered_by_string = False
     step_has_been_triggered_by_string_not = False
 
@@ -134,11 +135,9 @@ def test_casehandler_full_name(case: MyCase) -> None:
 def test_case_inputs_dict(case: MyCase) -> None:
     case.required_param = 4.0
     assert case.inputs == {
-        "first_step_has_been_run": False,
         "my_param": 3.0,
         "param_with_default": 10.0,
         "required_param": 4.0,
-        "second_step_has_been_run": False,
     }
 
 
