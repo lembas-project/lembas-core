@@ -98,6 +98,7 @@ class Case:
     """
 
     _steps: ClassVar[dict[str, CaseStep]]
+    results: Results
 
     def __init_subclass__(cls, **kwargs: Any):
         cls._steps = {
