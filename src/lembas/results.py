@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import weakref
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -15,9 +17,13 @@ class Results:
     """
 
     def __init__(self, parent: Case):
-        self._parent = parent
+        self._parent = weakref.ref(parent)
 
-    @property
+    @cached_property
     def parent(self) -> Case:
-        # TODO: Replace with a weakref to remove memory leak
-        return self._parent
+        parent = self._parent()
+        if parent is None:
+            raise ValueError(
+                "The parent has been de-referenced. This shouldn't happen."
+            )
+        return parent
