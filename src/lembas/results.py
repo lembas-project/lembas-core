@@ -21,6 +21,7 @@ class Results:
 
     @cached_property
     def parent(self) -> Case:
+        """A reference to the parent case with which these results are associated."""
         parent = self._parent()
         if parent is None:
             raise ValueError(
