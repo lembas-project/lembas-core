@@ -23,6 +23,8 @@ from lembas.param import InputParameter
 
 __all__ = ["Case", "CaseList", "step"]
 
+from lembas.results import Results
+
 LEMBAS_CASE_TOML_FILENAME = Path("lembas", "case.toml")
 
 TCase = TypeVar("TCase", bound="Case")
@@ -108,6 +110,7 @@ class Case:
         self._completed_steps: set[str] = set()
         for name, value in kwargs.items():
             setattr(self, name, value)
+        self.results = Results(parent=self)
 
     def __str__(self) -> str:
         cls = self.__class__
