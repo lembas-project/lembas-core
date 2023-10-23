@@ -19,6 +19,11 @@ class MyCase(Case):
     first_step_has_been_run = InputParameter(default=False)
     second_step_has_been_run = InputParameter(default=False)
     control_param = InputParameter(default=1.0, control=True)
+    control_param_true = InputParameter(default=True, control=True)
+    control_param_false = InputParameter(default=False, control=True)
+
+    step_has_been_triggered_by_string = False
+    step_has_been_triggered_by_string_not = False
 
     @step(condition=lambda self: self.my_param > 4, requires="second_step")
     def change_param_with_default(self) -> None:
@@ -34,6 +39,14 @@ class MyCase(Case):
     @step
     def first_step(self) -> None:
         self.first_step_has_been_run = True
+
+    @step(condition="control_param_true")
+    def triggered_by_string(self) -> None:
+        self.step_has_been_triggered_by_string = True
+
+    @step(condition="not control_param_false")
+    def triggered_by_string_not(self) -> None:
+        self.step_has_been_triggered_by_string_not = True
 
 
 @pytest.fixture()
@@ -93,9 +106,25 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
     assert case.param_with_default == pytest.approx(5.0)
 
 
+def test_case_step_string_condition(case: MyCase) -> None:
+    """The step with a simple string condition is run."""
+    case.run()
+    assert case.step_has_been_triggered_by_string
+
+
+def test_case_step_string_condition_not(case: MyCase) -> None:
+    """The step with a string "not" condition is run."""
+    case.run()
+    assert case.step_has_been_triggered_by_string_not
+
+
 def test_case_steps_order(case: MyCase) -> None:
-    step_names = [step._func.__name__ for step in case._sorted_steps]
-    assert step_names == ["first_step", "second_step", "change_param_with_default"]
+    expected_steps = ["first_step", "second_step", "change_param_with_default"]
+    # Extract the step names if they are expected (drop ones without a requires)
+    step_names = [
+        step.name for step in case._sorted_steps if step.name in expected_steps
+    ]
+    assert step_names == expected_steps
 
 
 def test_casehandler_full_name(case: MyCase) -> None:

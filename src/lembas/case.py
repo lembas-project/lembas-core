@@ -34,7 +34,7 @@ class CaseStep:
         self,
         func: RawCaseStepMethod,
         *,
-        condition: Callable[[Any], bool] | None = None,
+        condition: Callable[[Any], bool] | str | None = None,
         requires: str | Iterable[str] | None = None,
     ):
         self._func = func
@@ -49,7 +49,28 @@ class CaseStep:
         return self._func.__name__
 
     def __call__(self, instance: Case) -> None:
-        if self._condition is None or self._condition(instance):
+        if self._condition is None:
+            perform_calc = True
+        elif isinstance(self._condition, str):
+            parts = self._condition.split()
+            if len(parts) == 1:
+                perform_calc = getattr(instance, parts[0].strip())
+            elif len(parts) == 2:
+                # The only two-part form allowed is "not attribute_name"
+                if parts[0].strip().lower() != "not":
+                    raise ValueError(
+                        "Can only use 'not' as modifier for string-based condition"
+                    )
+                perform_calc = not getattr(instance, parts[1].strip())
+            else:
+                raise ValueError(
+                    "A string-based condition can only be of the 'attribute_name' or "
+                    "'not attribute_name' form"
+                )
+        else:
+            perform_calc = self._condition(instance)
+
+        if perform_calc:
             return self._func(instance)
         return None
 
@@ -243,7 +264,7 @@ class CaseList(Generic[TCase]):
 def step(
     method: RawCaseStepMethod | None = None,
     /,
-    condition: Callable[[Any], bool] | None = None,
+    condition: Callable[[Any], bool] | str | None = None,
     requires: str | Iterable[str] | None = None,
 ) -> Any:
     """A decorator to define steps to be performed when running a `Case`.
@@ -255,7 +276,11 @@ def step(
             will be used.
         condition: an optional callable which can be used to determine whether the step should run.
             It will receive the `Case` instance as its only argument, and must return a boolean
-            which, if True, the step will run. Otherwise, it will be skipped.
+            which, if True, the step will run. Otherwise, it will be skipped. If a string is provided,
+            the condition will be evaluated by performing an attribute lookup on the case, e.g.
+            condition="plot" evaluates to lambda case: case.plot. You may also place the word "not"
+            in front of the attribute, e.g. condition="not plot", which evaluates to
+            lambda case: not case.plot.
         requires: An iterable of dependent steps on which this one depends, or a single string.
 
     Usage:
