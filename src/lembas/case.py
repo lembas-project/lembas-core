@@ -23,7 +23,7 @@ from lembas.param import InputParameter
 
 __all__ = ["Case", "CaseList", "step"]
 
-LEMBAS_CASE_TOML_FILENAME = "lembas-case.toml"
+LEMBAS_CASE_TOML_FILENAME = Path("lembas", "case.toml")
 
 TCase = TypeVar("TCase", bound="Case")
 RawCaseStepMethod = Callable[[TCase], None]
