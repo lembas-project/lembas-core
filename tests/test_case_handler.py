@@ -119,6 +119,24 @@ def test_case_step_string_condition_not(case: MyCase) -> None:
     assert case.step_has_been_triggered_by_string_not
 
 
+@pytest.mark.parametrize(
+    "condition",
+    [
+        pytest.param("is some_attribute", id="only-not-allowed"),
+        pytest.param("is not some_attribute", id="max-two-words"),
+        pytest.param("", id="at-least-one-word"),
+    ],
+)
+def test_string_condition_invalid_raises_exception(condition: str) -> None:
+    """The string must be either an attribute name, or `not attribute_name`."""
+    with pytest.raises(ValueError):
+
+        class MyClass(Case):
+            @step(condition=condition)
+            def anything(self) -> None:
+                ...
+
+
 def test_case_steps_order(case: MyCase) -> None:
     expected_steps = ["first_step", "second_step", "change_param_with_default"]
     # Extract the step names if they are expected (drop ones without a requires)

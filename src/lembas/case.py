@@ -38,7 +38,7 @@ class CaseStep:
         requires: str | Iterable[str] | None = None,
     ):
         self._func = func
-        self._condition = condition
+        self._condition = self._validate_condition(condition)
         self.requires = (
             [requires] if isinstance(requires, str) else list(requires or [])
         )
@@ -48,29 +48,33 @@ class CaseStep:
         """The name of the case step."""
         return self._func.__name__
 
-    def __call__(self, instance: Case) -> None:
-        if self._condition is None:
-            perform_calc = True
-        elif isinstance(self._condition, str):
-            parts = self._condition.split()
+    @staticmethod
+    def _validate_condition(
+        condition: Callable[[Any], bool] | str | None
+    ) -> Callable[[Any], bool]:
+        if condition is None:
+            return lambda _: True
+
+        if isinstance(condition, str):
+            parts = condition.split()
             if len(parts) == 1:
-                perform_calc = getattr(instance, parts[0].strip())
+                return lambda case: getattr(case, parts[0].strip())
             elif len(parts) == 2:
                 # The only two-part form allowed is "not attribute_name"
                 if parts[0].strip().lower() != "not":
                     raise ValueError(
                         "Can only use 'not' as modifier for string-based condition"
                     )
-                perform_calc = not getattr(instance, parts[1].strip())
+                return lambda case: not getattr(case, parts[1].strip())
             else:
                 raise ValueError(
                     "A string-based condition can only be of the 'attribute_name' or "
                     "'not attribute_name' form"
                 )
-        else:
-            perform_calc = self._condition(instance)
+        return condition
 
-        if perform_calc:
+    def __call__(self, instance: Case) -> None:
+        if self._condition(instance):
             return self._func(instance)
         return None
 
