@@ -9,6 +9,7 @@ import dataclasses
 from functools import cached_property
 from pathlib import Path
 from typing import Any
+from typing import NamedTuple
 
 import numpy as np
 import pandas
@@ -18,7 +19,7 @@ from planingfsi import FlexibleMembraneSubstructure
 from planingfsi import Mesh
 from planingfsi import Simulation
 
-from lembas import Case
+from lembas import Case, result
 from lembas import CaseList
 from lembas import InputParameter
 from lembas import step
@@ -32,8 +33,7 @@ class Coordinate:
     y: float
 
 
-@dataclasses.dataclass
-class HydrostaticDamResults:
+class HydrostaticDamResults(NamedTuple):
     max_height: float
     coords: list[Coordinate]
 
@@ -45,8 +45,8 @@ class HydrostaticDamCase(Case):
     def case_dir(self) -> Path:
         return BASE_DIR / "cases" / f"href={self.reference_head:0.3f}m"
 
-    @cached_property
-    def results(self) -> HydrostaticDamResults:
+    @result("max_height", "coords")
+    def load_results(self) -> HydrostaticDamResults:
         """Load results from files and return."""
         # Find the latest time directory to load results from
         results_dirs = sorted(
@@ -71,7 +71,7 @@ class HydrostaticDamCase(Case):
     @cached_property
     def results_dict(self) -> dict[str, Any]:
         """A combined dictionary of results & inputs."""
-        return dataclasses.asdict(self.results)
+        return {k: self.results.get(k) for k in ["max_height", "coords"]}
 
     @staticmethod
     def generate_mesh() -> Mesh:
