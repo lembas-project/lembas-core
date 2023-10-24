@@ -1,7 +1,7 @@
 import pytest
 
 from lembas import Case
-from lembas.results import result
+from lembas import result
 
 
 class MyCase(Case):
