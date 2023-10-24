@@ -20,10 +20,12 @@ import toml
 
 from lembas.logging import logger
 from lembas.param import InputParameter
+from lembas.results import Results
 
 __all__ = ["Case", "CaseList", "step"]
 
-LEMBAS_CASE_TOML_FILENAME = "lembas-case.toml"
+
+LEMBAS_CASE_TOML_FILENAME = Path("lembas", "case.toml")
 
 TCase = TypeVar("TCase", bound="Case")
 RawCaseStepMethod = Callable[[TCase], None]
@@ -96,6 +98,7 @@ class Case:
     """
 
     _steps: ClassVar[dict[str, CaseStep]]
+    results: Results
 
     def __init_subclass__(cls, **kwargs: Any):
         cls._steps = {
@@ -108,6 +111,7 @@ class Case:
         self._completed_steps: set[str] = set()
         for name, value in kwargs.items():
             setattr(self, name, value)
+        self.results = Results(parent=self)
 
     def __str__(self) -> str:
         cls = self.__class__

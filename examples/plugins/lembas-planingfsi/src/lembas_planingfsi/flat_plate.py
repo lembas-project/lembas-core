@@ -6,22 +6,22 @@ Each case is run with `planingfsi` and is characterized by the Froude number
 """
 from __future__ import annotations
 
-import dataclasses
 import shutil
 import subprocess
 from functools import cached_property
 from pathlib import Path
 from typing import Any
+from typing import NamedTuple
 
 from planingfsi.dictionary import load_dict_from_file
 
 from lembas import Case
 from lembas import InputParameter
+from lembas import result
 from lembas import step
 
 
-@dataclasses.dataclass
-class PlaningPlateResults:
+class PlaningPlateResults(NamedTuple):
     drag: float
     lift: float
     moment: float
@@ -40,8 +40,8 @@ class PlaningPlateCase(Case):
             f"Fr={self.froude_num:0.2f}_AOA={self.angle_of_attack:0.2f}",
         )
 
-    @cached_property
-    def results(self) -> PlaningPlateResults:
+    @result("drag", "lift", "moment")
+    def load_results(self) -> PlaningPlateResults:
         """Load results from files and return."""
         # Find the latest time directory to load results from
         results_dirs = sorted(
@@ -67,7 +67,7 @@ class PlaningPlateCase(Case):
     @cached_property
     def results_dict(self) -> dict[str, Any]:
         """A combined dictionary of results & inputs."""
-        return dataclasses.asdict(self.results)
+        return {k: self.results.get(k) for k in ["drag", "lift", "moment"]}
 
     @step(condition=lambda self: not (self.case_dir / "configDict").exists())
     def create_input_files(self) -> None:
