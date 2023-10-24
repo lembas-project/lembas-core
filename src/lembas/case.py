@@ -20,10 +20,10 @@ import toml
 
 from lembas.logging import logger
 from lembas.param import InputParameter
+from lembas.results import Results
 
 __all__ = ["Case", "CaseList", "step"]
 
-from lembas.results import Results
 
 LEMBAS_CASE_TOML_FILENAME = Path("lembas", "case.toml")
 
