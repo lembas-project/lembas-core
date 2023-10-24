@@ -76,6 +76,10 @@ class Results:
         except KeyError:
             raise AttributeError(f"Result '{item}' is not defined")
 
+    def get(self, item: str, default: Any = None) -> Any:
+        """Dictionary-like get access."""
+        return getattr(self, item, default)
+
 
 def result(
     *func_or_names: Callable[[TCase], Any] | str

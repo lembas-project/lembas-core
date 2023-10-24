@@ -41,7 +41,7 @@ def test_cas_results_get_attr_with_args_single(case: MyCase) -> None:
 
 def test_case_results_get_attr_multiple(case: MyCase) -> None:
     assert case.results.first_result == "first_result_value"
-    assert case.results.second_result == "second_result_value"
+    assert case.results.get("second_result") == "second_result_value"
 
 
 def test_case_results_incorrect_number_of_results(case: MyCase) -> None:
