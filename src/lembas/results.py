@@ -37,9 +37,6 @@ class Results:
         return parent
 
     def __getattr__(self, item: str) -> Any:
-        if item in self.__dict__:
-            return self.__dict__[item]
-
         # During attribute access, we search the class for methods to which have been
         # attached a "_provides_results" tuple. If we find that, and the requested
         # result is in that tuple, we call the method (once) and cache the results in
