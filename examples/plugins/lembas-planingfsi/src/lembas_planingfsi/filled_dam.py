@@ -19,9 +19,10 @@ from planingfsi import FlexibleMembraneSubstructure
 from planingfsi import Mesh
 from planingfsi import Simulation
 
-from lembas import Case, result
+from lembas import Case
 from lembas import CaseList
 from lembas import InputParameter
+from lembas import result
 from lembas import step
 
 BASE_DIR = Path(__file__).parent

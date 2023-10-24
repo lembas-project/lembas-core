@@ -15,8 +15,9 @@ from typing import NamedTuple
 
 from planingfsi.dictionary import load_dict_from_file
 
-from lembas import Case, result
+from lembas import Case
 from lembas import InputParameter
+from lembas import result
 from lembas import step
 
 
