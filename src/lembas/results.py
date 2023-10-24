@@ -30,7 +30,7 @@ class Results:
     def parent(self) -> Case:
         """A reference to the parent case with which these results are associated."""
         parent = self._parent()
-        if parent is None:
+        if parent is None:  # pragma: no cover
             raise ValueError(
                 "The parent has been de-referenced. This shouldn't happen."
             )
@@ -96,7 +96,7 @@ def result(
         # the decorated method.
         try:
             (method,) = func_or_names
-        except ValueError:
+        except ValueError:  # pragma: no cover
             raise ValueError("Must only provide a single callable")
         names = (method.__name__,)  # type: ignore
         method._provides_results = names  # type: ignore
