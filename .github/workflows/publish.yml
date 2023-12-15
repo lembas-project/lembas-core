@@ -37,7 +37,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Setup Python
-      uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4
+      uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5
       with:
         python-version: "3.10"
     - name: Install build dependencies
@@ -137,7 +137,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
     - name: Setup Python
-      uses: actions/setup-python@65d7f2d534ac1bc67fcd62888c5f4f3d2cb2b236 # v4
+      uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5
     - name: Download the build artifacts
       uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4 # v4
       with:
