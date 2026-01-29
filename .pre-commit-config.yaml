@@ -36,7 +36,7 @@ repos:
     name: isort
     exclude: "examples/plugins/.*"
 - repo: https://github.com/psf/black
-  rev: 23.11.0
+  rev: 23.12.1
   hooks:
   - id: black
 - repo: https://github.com/pycqa/flake8
