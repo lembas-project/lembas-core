@@ -1,52 +1,55 @@
+ci:
+  autoupdate_schedule: quarterly
+
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
-  hooks:
-  - id: trailing-whitespace
-  - id: end-of-file-fixer
-  - id: check-yaml
-    exclude: 'conda.recipe/.*'
-  - id: check-toml
-  - id: check-docstring-first
-- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-  rev: v2.11.0
-  hooks:
-  - id: pretty-format-yaml
-    args: [--autofix, --preserve-quotes, --indent, '2']
-    exclude: 'conda.recipe/.*'
-  - id: pretty-format-toml
-    args: [--autofix]
-- repo: https://github.com/sondrelg/pep585-upgrade
-  rev: 'v1.0'
-  hooks:
-  - id: upgrade-type-hints
-    args: ['--futures=true']
-- repo: https://github.com/MarcoGorelli/absolufy-imports
-  rev: v0.3.1
-  hooks:
-  - id: absolufy-imports
-    exclude: "examples/plugins/.*"
-- repo: https://github.com/pycqa/isort
-  rev: 5.13.1
-  hooks:
-  - id: isort
-    name: isort
-    exclude: "examples/plugins/.*"
-- repo: https://github.com/psf/black
-  rev: 23.11.0
-  hooks:
-  - id: black
-- repo: https://github.com/pycqa/flake8
-  rev: 6.1.0
-  hooks:
-  - id: flake8
-- repo: https://github.com/igorshubovych/markdownlint-cli
-  rev: v0.38.0
-  hooks:
-  - id: markdownlint-fix
-    args: [--ignore, README.md, --disable, MD041]
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.7.1
-  hooks:
-  - id: mypy
-    additional_dependencies: [types-toml]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        exclude: "conda.recipe/.*"
+      - id: check-toml
+      - id: check-docstring-first
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.11.0
+    hooks:
+      - id: pretty-format-yaml
+        args: [--autofix, --preserve-quotes, --indent, "2"]
+        exclude: "conda.recipe/.*"
+      - id: pretty-format-toml
+        args: [--autofix]
+  - repo: https://github.com/sondrelg/pep585-upgrade
+    rev: "v1.0"
+    hooks:
+      - id: upgrade-type-hints
+        args: ["--futures=true"]
+  - repo: https://github.com/MarcoGorelli/absolufy-imports
+    rev: v0.3.1
+    hooks:
+      - id: absolufy-imports
+        exclude: "examples/plugins/.*"
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.1
+    hooks:
+      - id: isort
+        name: isort
+        exclude: "examples/plugins/.*"
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint-fix
+        args: [--ignore, README.md, --disable, MD041]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-toml]
