@@ -21,7 +21,7 @@ jobs:
         VERSION=`python -m setuptools_scm` conda build conda.recipe
         mv $CONDA_PREFIX/conda-bld .
     - name: Upload the build artifact
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
       with:
         name: conda-${{ github.sha }}
         path: conda-bld
@@ -45,7 +45,7 @@ jobs:
     - name: Build the package
       run: python -m build
     - name: Upload the build artifact
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
       with:
         name: wheel-${{ github.sha }}
         path: dist/*
@@ -80,7 +80,7 @@ jobs:
         source $CONDA/bin/activate
         conda create -n build --file ./etc/build.linux-64.lock
     - name: Download the build artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
       with:
         name: conda-${{ github.sha }}
         path: ./conda-bld
@@ -109,7 +109,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Download the build artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
       with:
         name: wheel-${{ github.sha }}
         path: ./dist
@@ -139,7 +139,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
     - name: Download the build artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
       with:
         name: wheel-${{ github.sha }}
         path: ./dist
