@@ -80,7 +80,7 @@ jobs:
         source $CONDA/bin/activate
         conda create -n build --file ./etc/build.linux-64.lock
     - name: Download the build artifacts
-      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4 # v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
         name: conda-${{ github.sha }}
         path: ./conda-bld
@@ -109,7 +109,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Download the build artifacts
-      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4 # v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
         name: wheel-${{ github.sha }}
         path: ./dist
@@ -139,7 +139,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5
     - name: Download the build artifacts
-      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4 # v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
       with:
         name: wheel-${{ github.sha }}
         path: ./dist
