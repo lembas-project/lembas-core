@@ -19,11 +19,11 @@ repos:
     exclude: "conda.recipe/.*"
   - id: pretty-format-toml
     args: [--autofix]
-- repo: https://github.com/sondrelg/pep585-upgrade
-  rev: "v1.0.1"
-  hooks:
-  - id: upgrade-type-hints
-    args: ["--futures=true"]
+  # - repo: https://github.com/sondrelg/pep585-upgrade
+  #   rev: "v1.0.1"
+  #   hooks:
+  #   - id: upgrade-type-hints
+  #     args: ["--futures=true"]
 - repo: https://github.com/MarcoGorelli/absolufy-imports
   rev: v0.3.1
   hooks:
