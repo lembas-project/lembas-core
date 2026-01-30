@@ -37,5 +37,5 @@ test:
 
 about:
   summary: {{ project['description'] }}
-  license: {{ project['license']['text'] }}
+  license: {{ project['license'] }}
   license_file: LICENSE
