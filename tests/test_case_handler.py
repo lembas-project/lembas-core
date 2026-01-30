@@ -133,8 +133,8 @@ def test_string_condition_invalid_raises_exception(condition: str) -> None:
 
         class MyClass(Case):
             @step(condition=condition)
-            def anything(self) -> None:
-                ...  # pragma: no cover
+            def anything(self) -> None:  # pragma: no cover
+                pass
 
 
 def test_case_steps_order(case: MyCase) -> None:
