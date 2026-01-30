@@ -45,11 +45,61 @@ jobs:
       with:
         files: ./test-reports/coverage.xml
         env_vars: OS,PYTHON
+
+  build-conda-package:
+    name: Build conda package
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd   # v6.0.2
+      with:
+        fetch-depth: 0
+    - name: Create build environment
+      run: |
+        source $CONDA/bin/activate
+        conda create -n build --file ./etc/build.linux-64.lock
+    - name: conda build
+      run: |
+        source $CONDA/bin/activate && conda activate build
+        python -m setuptools_scm
+        VERSION=`python -m setuptools_scm` conda build conda.recipe
+        mv $CONDA_PREFIX/conda-bld .
+    - name: Upload the build artifact
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f   # v6
+      with:
+        name: conda-${{ github.sha }}
+        path: conda-bld
+        if-no-files-found: error
+        retention-days: 7
+
+  build-wheel:
+    name: Build the wheel
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd   # v6.0.2
+      with:
+        fetch-depth: 0
+    - name: Setup Python
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405   # v6
+      with:
+        python-version: "3.14"
+    - name: Install build dependencies
+      run: pip install build
+    - name: Build the package
+      run: python -m build
+    - name: Upload the build artifact
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f   # v6
+      with:
+        name: wheel-${{ github.sha }}
+        path: dist/*
+        if-no-files-found: error
+        retention-days: 7
+
   # This check job runs to ensure all tests have passed, such that we can use it as a "wildcard" for branch
   # protection to ensure all tests pass before a PR can be merged.
   check:
     if: always()
-    needs: [test]
+    needs: [test, build-wheel, build-conda-package]
     runs-on: ubuntu-latest
     steps:
     - name: Decide whether all required jobs succeeded or failed

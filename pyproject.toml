@@ -11,7 +11,8 @@ dependencies = [
 ]
 description = "Lifecycle Engineering Model-Based Analysis System"
 dynamic = ["version"]
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 name = "lembas"
 requires-python = ">=3.10"
 
