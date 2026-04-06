@@ -20,7 +20,7 @@ repos:
   - id: pretty-format-toml
     args: [--autofix]
 - repo: https://github.com/sondrelg/pep585-upgrade
-  rev: "v1.0.1"
+  rev: "v1.0"
   hooks:
   - id: upgrade-type-hints
     args: ["--futures=true"]
@@ -30,13 +30,13 @@ repos:
   - id: absolufy-imports
     exclude: "examples/plugins/.*"
 - repo: https://github.com/pycqa/isort
-  rev: 7.0.0
+  rev: 8.0.1
   hooks:
   - id: isort
     name: isort
     exclude: "examples/plugins/.*"
-- repo: https://github.com/psf/black
-  rev: 26.1.0
+- repo: https://github.com/psf/black-pre-commit-mirror
+  rev: 26.3.1
   hooks:
   - id: black
 - repo: https://github.com/pycqa/flake8
@@ -44,12 +44,12 @@ repos:
   hooks:
   - id: flake8
 - repo: https://github.com/igorshubovych/markdownlint-cli
-  rev: v0.47.0
+  rev: v0.48.0
   hooks:
   - id: markdownlint-fix
     args: [--ignore, README.md, --disable, MD041]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.19.1
+  rev: v1.20.0
   hooks:
   - id: mypy
     additional_dependencies: [types-toml]
