@@ -7,13 +7,15 @@ dependencies = [
   "pluggy <=1.6.0",
   "typer <0.22",
   "rich <15",
-  "toml"
+  "toml",
+  "pydantic >=2.0",
+  "tomlkit >=0.12"
 ]
 description = "Lifecycle Engineering Model-Based Analysis System"
 dynamic = ["version"]
 license = {text = "MIT"}
 name = "lembas"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [project.optional-dependencies]
 ci = ["lembas[dev]"]
