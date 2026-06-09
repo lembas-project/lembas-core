@@ -16,9 +16,6 @@ jobs:
       with:
         pixi-version: v0.44.0
         environments: build
-    - name: Get version from git
-      id: version
-      run: pixi run -e build python -m setuptools_scm
     - name: Build conda package
       run: VERSION=$(pixi run -e build python -m setuptools_scm) pixi run -e build build
     - name: Upload the build artifact
