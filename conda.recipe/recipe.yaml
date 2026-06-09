@@ -1,0 +1,47 @@
+schema_version: 1
+
+context:
+  version: ${{ env.get("VERSION", "0.0.0") }}
+
+package:
+  name: lembas
+  version: ${{ version }}
+
+source:
+  path: ..
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - SETUPTOOLS_SCM_PRETEND_VERSION=${{ version }} python -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python >=3.11
+    - pip
+    - setuptools >=42
+    - setuptools-scm >=6.2
+  run:
+    - python >=3.11
+    - pluggy <=1.6.0
+    - typer <0.22
+    - rich <15
+    - toml
+    - pydantic >=2.0
+    - tomlkit >=0.12
+
+tests:
+  - python:
+      imports:
+        - lembas
+  - script:
+      - lembas --version
+
+about:
+  homepage: https://github.com/lembas-project/lembas-core
+  license: MIT
+  license_file: LICENSE
+  summary: Lifecycle Engineering Model-Based Analysis System
+  description: |
+    A Python framework for defining and running parametric engineering analyses.
