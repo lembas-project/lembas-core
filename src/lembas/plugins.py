@@ -42,10 +42,10 @@ class CaseHandlerRegistry:
         """
         try:
             return self._registry[name]
-        except KeyError:
+        except KeyError as err:
             raise CaseHandlerNotFound(
                 f"Could not find [bold]{name}[/bold] in the case handler registry"
-            )
+            ) from err
 
     def clear(self) -> None:
         """Clear the case handler registry."""
@@ -91,10 +91,9 @@ def load_plugins_from_file(plugin_path: Path) -> None:
     mod = _load_module_from_path(plugin_path)
 
     for name, obj in mod.__dict__.items():
-        if inspect.isclass(obj):
-            if issubclass(obj, Case) and obj != Case:
-                registry.add(obj)
-                print(f"Found [bold]{name}[/bold] in {plugin_path}")
+        if inspect.isclass(obj) and issubclass(obj, Case) and obj != Case:
+            registry.add(obj)
+            print(f"Found [bold]{name}[/bold] in {plugin_path}")
 
 
 hookspec = HookspecMarker("lembas")

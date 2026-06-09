@@ -45,9 +45,7 @@ class PlaningPlateCase(Case):
     def load_results(self) -> PlaningPlateResults:
         """Load results from files and return."""
         # Find the latest time directory to load results from
-        results_dirs = sorted(
-            self.case_dir.glob("[0-9]*"), key=lambda d: int(d.name), reverse=True
-        )
+        results_dirs = sorted(self.case_dir.glob("[0-9]*"), key=lambda d: int(d.name), reverse=True)
         results_dir = results_dirs[0]
         results_dict = load_dict_from_file(results_dir / "forces_total.txt")
         return PlaningPlateResults(

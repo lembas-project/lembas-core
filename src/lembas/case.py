@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Any
 from typing import ClassVar
 from typing import Generic
-from typing import Optional
 from typing import TypeVar
 
 import toml
@@ -41,9 +40,7 @@ class CaseStep:
     ):
         self._func = func
         self._condition = self._validate_condition(condition)
-        self.requires = (
-            [requires] if isinstance(requires, str) else list(requires or [])
-        )
+        self.requires = [requires] if isinstance(requires, str) else list(requires or [])
 
     @cached_property
     def name(self) -> str:
@@ -64,9 +61,7 @@ class CaseStep:
             elif len(parts) == 2:
                 # The only two-part form allowed is "not attribute_name"
                 if parts[0].strip().lower() != "not":
-                    raise ValueError(
-                        "Can only use 'not' as modifier for string-based condition"
-                    )
+                    raise ValueError("Can only use 'not' as modifier for string-based condition")
                 return lambda case: not getattr(case, parts[1].strip())
             else:
                 raise ValueError(
@@ -102,9 +97,7 @@ class Case:
 
     def __init_subclass__(cls, **kwargs: Any):
         cls._steps = {
-            name: method
-            for name, method in cls.__dict__.items()
-            if isinstance(method, CaseStep)
+            name: method for name, method in cls.__dict__.items() if isinstance(method, CaseStep)
         }
 
     def __init__(self, **kwargs: Any):
@@ -135,16 +128,16 @@ class Case:
         return mod_prefix + cls.__qualname__
 
     @cached_property
-    def case_dir(self) -> Optional[Path]:
-        f"""An optional property that can be set for a subclass.
+    def case_dir(self) -> Path | None:
+        """An optional property that can be set for a subclass.
 
-        If set, the `{LEMBAS_CASE_TOML_FILENAME}` file will be written in this directory.
+        If set, the lembas case.toml file will be written in this directory.
 
         """
         return None
 
     @cached_property
-    def relative_case_dir(self) -> Optional[Path]:
+    def relative_case_dir(self) -> Path | None:
         """Return a case directory relative to current working directory if possible.
 
         If the case directory is not a subdirectory of current working directory, the absolute
@@ -189,9 +182,7 @@ class Case:
         case_summary_file.parent.mkdir(parents=True, exist_ok=True)
 
         self.log("Writing case summary to: %s", case_summary_file)
-        contents = {
-            "lembas": {"inputs": self.inputs, "case-handler": self.fully_resolved_name}
-        }
+        contents = {"lembas": {"inputs": self.inputs, "case-handler": self.fully_resolved_name}}
         with case_summary_file.open("w") as fp:
             toml.dump(contents, fp)
 
@@ -232,9 +223,7 @@ class CaseList(Generic[TCase]):
         self._cases.append(case)
         return case
 
-    def add_cases_by_parameter_sweep(
-        self, case_class: type[TCase], **kwargs: Any
-    ) -> None:
+    def add_cases_by_parameter_sweep(self, case_class: type[TCase], **kwargs: Any) -> None:
         """Add a number of cases by performing a parameter sweep using the Cartesian product.
 
         Args:
@@ -249,7 +238,7 @@ class CaseList(Generic[TCase]):
                 kwargs[key] = [value]
 
         for values in itertools.product(*kwargs.values()):
-            new_kwargs = {k: v for k, v in zip(kwargs.keys(), values)}
+            new_kwargs = dict(zip(kwargs.keys(), values, strict=True))
             case = case_class(**new_kwargs)
             self.add(case)
 
@@ -265,8 +254,7 @@ class CaseList(Generic[TCase]):
         return len(self._cases)
 
     def __iter__(self) -> Iterator[TCase]:
-        for case in self._cases:
-            yield case
+        yield from self._cases
 
 
 def step(
