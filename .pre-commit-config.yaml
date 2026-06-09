@@ -43,7 +43,7 @@ repos:
     args: [--ignore, README.md, --disable, MD041]
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.19.1
+  rev: v1.20.2
   hooks:
   - id: mypy
     additional_dependencies: [types-toml]
