@@ -48,10 +48,6 @@ exclude_lines = [
   'if __name__ == "__main__":'
 ]
 
-[tool.isort]
-force_single_line = true
-profile = "black"
-
 [tool.mypy]
 disallow_untyped_defs = true
 files = [
@@ -60,6 +56,27 @@ files = [
 ]
 ignore_missing_imports = true
 python_version = "3.10"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+ignore = [
+  "E501"  # line too long (handled by formatter)
+]
+select = [
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "F",  # pyflakes
+  "I",  # isort
+  "UP",  # pyupgrade
+  "B",  # flake8-bugbear
+  "SIM"  # flake8-simplify
+]
+
+[tool.ruff.lint.isort]
+force-single-line = true
 
 [tool.setuptools_scm]
 write_to = "src/lembas/_version.py"
