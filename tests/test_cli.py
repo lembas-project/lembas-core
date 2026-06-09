@@ -50,7 +50,7 @@ def test_version(invoke_cli: CLIInvoker) -> None:
     """A basic smoke-test to check that the CLI can print out the version."""
     result = invoke_cli("--version")
     assert result.exit_code == 0
-    assert f"Lembas version: {__version__}" in result.stdout
+    assert f"lembas {__version__}" in result.stdout
 
 
 @pytest.fixture()
@@ -97,7 +97,7 @@ def test_run_case_success(invoke_cli: CLIInvoker, plugin_module_path: Path) -> N
     """A successful run must specify the case handler name, plugin path, and parameters without a default value."""
     my_param_value = 3.5
     result = invoke_cli(
-        "run",
+        "case",
         "MyCase",
         "--plugin",
         str(plugin_module_path),
@@ -112,6 +112,6 @@ def test_run_case_success(invoke_cli: CLIInvoker, plugin_module_path: Path) -> N
 
 def test_run_case_missing_case_handler(invoke_cli: CLIInvoker) -> None:
     """If the case handler is not in the registry, execution is aborted."""
-    result = invoke_cli("run", "MyCase")
+    result = invoke_cli("case", "MyCase")
     assert result.exit_code == 1, result.stdout
     assert "Could not find MyCase in the case handler registry" in result.stdout

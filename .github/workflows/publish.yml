@@ -93,7 +93,7 @@ jobs:
         anaconda --verbose \
           --token $TOKEN \
           upload \
-          --user mattkram \
+          --user lembas-project \
           $LABEL \
           --force \
           ./conda-bld/noarch/lembas-*
@@ -123,7 +123,7 @@ jobs:
         anaconda --verbose \
           --token $TOKEN \
           upload \
-          --user mattkram \
+          --user lembas-project \
           $LABEL \
           --force \
           ./dist/*.whl
