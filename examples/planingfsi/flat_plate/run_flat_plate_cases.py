@@ -51,9 +51,7 @@ class PlaningPlateCase(Case):
     def load_results(self) -> PlaningPlateResults:
         """Load results from files and return."""
         # Find the latest time directory to load results from
-        results_dirs = sorted(
-            self.case_dir.glob("[0-9]*"), key=lambda d: int(d.name), reverse=True
-        )
+        results_dirs = sorted(self.case_dir.glob("[0-9]*"), key=lambda d: int(d.name), reverse=True)
         results_dir = results_dirs[0]
         results_dict = load_dict_from_file(results_dir / "forces_total.txt")
         return PlaningPlateResults(
@@ -99,9 +97,7 @@ class PlaningPlateCase(Case):
 
 def plot_summary_results(cases: CaseList[PlaningPlateCase]) -> None:
     """Create a plot of the lift from all the cases that were run."""
-    df = pandas.DataFrame.from_records(
-        case.results_dict | case.inputs_dict for case in cases
-    )
+    df = pandas.DataFrame.from_records(case.results_dict | case.inputs_dict for case in cases)
     df.plot.scatter(x="froude_num", y="lift", c="angle_of_attack", cmap="inferno")
     pyplot.show()
 

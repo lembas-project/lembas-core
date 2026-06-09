@@ -89,12 +89,12 @@ class InputParameter:
         """
         try:
             return instance.__dict__[self._name]
-        except KeyError:
+        except KeyError as err:
             if self._default == _NoDefault:
                 raise AttributeError(
                     f"'{self._name}' attribute of '{owner.__name__}' class "
                     "has no default value and must be specified explicitly"
-                )
+                ) from err
             return self._default
 
     @cached_property
