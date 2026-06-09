@@ -77,9 +77,7 @@ def test_case_parameter_type_conversion(case: MyCase, input_value: Any) -> None:
 
 
 @pytest.mark.parametrize("input_value", [1.0, 6.0])
-def test_case_parameter_bounds_raises_exception(
-    case: MyCase, input_value: float
-) -> None:
+def test_case_parameter_bounds_raises_exception(case: MyCase, input_value: float) -> None:
     """An exception is raised when attempting to set the value out of bounds."""
     with pytest.raises(ValueError):
         case.my_param = input_value
@@ -140,9 +138,7 @@ def test_string_condition_invalid_raises_exception(condition: str) -> None:
 def test_case_steps_order(case: MyCase) -> None:
     expected_steps = ["first_step", "second_step", "change_param_with_default"]
     # Extract the step names if they are expected (drop ones without a requires)
-    step_names = [
-        step.name for step in case._sorted_steps if step.name in expected_steps
-    ]
+    step_names = [step.name for step in case._sorted_steps if step.name in expected_steps]
     assert step_names == expected_steps
 
 
@@ -167,9 +163,7 @@ def test_case_lembas_toml(case: MyCase, tmp_path: Path) -> None:
     assert (tmp_path / "lembas" / "case.toml").exists()
     with (tmp_path / "lembas" / "case.toml").open("r") as fp:
         data = toml.load(fp)
-    assert data == {
-        "lembas": {"inputs": case.inputs, "case-handler": case.fully_resolved_name}
-    }
+    assert data == {"lembas": {"inputs": case.inputs, "case-handler": case.fully_resolved_name}}
 
 
 def test_case_relative_case_dir_is_absolute(case: MyCase, tmp_path: Path) -> None:

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import weakref
+from collections.abc import Callable
 from functools import cached_property
 from typing import TYPE_CHECKING
 from typing import Any
-from typing import Callable
 from typing import TypeVar
 
 if TYPE_CHECKING:
@@ -31,9 +31,7 @@ class Results:
         """A reference to the parent case with which these results are associated."""
         parent = self._parent()
         if parent is None:  # pragma: no cover
-            raise ValueError(
-                "The parent has been de-referenced. This shouldn't happen."
-            )
+            raise ValueError("The parent has been de-referenced. This shouldn't happen.")
         return parent
 
     def __getattr__(self, item: str) -> Any:
@@ -44,7 +42,7 @@ class Results:
         cls = self.parent.__class__
         for method_name, method_func in cls.__dict__.items():
             try:
-                provides_results = getattr(method_func, "_provides_results")
+                provides_results = method_func._provides_results
             except AttributeError:
                 continue  # to next method
 
@@ -65,13 +63,13 @@ class Results:
                     "decorator."
                 )
 
-            for n, r in zip(provides_results, results):
+            for n, r in zip(provides_results, results, strict=True):
                 setattr(self, n, r)
 
         try:
             return self.__dict__[item]
-        except KeyError:
-            raise AttributeError(f"Result '{item}' is not defined")
+        except KeyError as err:
+            raise AttributeError(f"Result '{item}' is not defined") from err
 
     def get(self, item: str, default: Any = None) -> Any:
         """Dictionary-like get access."""
@@ -79,7 +77,7 @@ class Results:
 
 
 def result(
-    *func_or_names: Callable[[TCase], Any] | str
+    *func_or_names: Callable[[TCase], Any] | str,
 ) -> RawCaseMethod | Callable[[RawCaseMethod], RawCaseMethod]:
     """A decorator to annotate a method that provides result(s).
 
@@ -96,8 +94,8 @@ def result(
         # the decorated method.
         try:
             (method,) = func_or_names
-        except ValueError:  # pragma: no cover
-            raise ValueError("Must only provide a single callable")
+        except ValueError as err:  # pragma: no cover
+            raise ValueError("Must only provide a single callable") from err
         names = (method.__name__,)  # type: ignore
         method._provides_results = names  # type: ignore
         return method  # type: ignore

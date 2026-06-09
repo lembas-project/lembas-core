@@ -6,7 +6,7 @@ Create a new virtual environment, activate it, and install in development mode:
 ```shell
 python -m venv venv
 . venv/bin/activate
-pip intall -e ".[dev]"
+pip install -e ".[dev]"
 ```
 
 ## Run the tests

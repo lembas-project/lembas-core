@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -40,9 +39,7 @@ class Abort(typer.Abort):
 
 @app.callback(invoke_without_command=True, no_args_is_help=True)
 def main(
-    version: Optional[bool] = typer.Option(
-        None, "--version", help="Show project version and exit."
-    )
+    version: bool | None = typer.Option(None, "--version", help="Show project version and exit."),
 ) -> None:
     """Command Line Interface for Lembas."""
     if version:
@@ -53,9 +50,9 @@ def main(
 @app.command()
 def run(
     case_handler_name: str,
-    params: Optional[list[str]] = typer.Argument(None),
+    params: list[str] | None = typer.Argument(None),  # noqa: B008
     *,
-    plugin: Optional[Path] = None,
+    plugin: Path | None = None,
 ) -> None:
     """Run a single case of a given case handler type."""
     if plugin is not None:
@@ -64,7 +61,7 @@ def run(
     try:
         class_ = registry.get(case_handler_name)
     except CaseHandlerNotFound as e:
-        raise Abort(str(e))
+        raise Abort(str(e)) from e
 
     data = {}
     for param in params or []:

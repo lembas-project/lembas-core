@@ -51,9 +51,7 @@ class HydrostaticDamCase(Case):
     def load_results(self) -> HydrostaticDamResults:
         """Load results from files and return."""
         # Find the latest time directory to load results from
-        results_dirs = sorted(
-            self.case_dir.glob("[0-9]*"), key=lambda d: int(d.name), reverse=True
-        )
+        results_dirs = sorted(self.case_dir.glob("[0-9]*"), key=lambda d: int(d.name), reverse=True)
         results_dir = results_dirs[0]
         coords = np.loadtxt(results_dir / "coords_dam.txt")
         return HydrostaticDamResults(
@@ -115,14 +113,14 @@ class HydrostaticDamCase(Case):
 
 def plot_summary_results(cases: CaseList[HydrostaticDamCase]) -> None:
     fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-    df = pandas.DataFrame.from_records(
-        case.inputs_dict | case.results_dict for case in cases
-    ).drop(columns="coords")
+    df = pandas.DataFrame.from_records(case.inputs_dict | case.results_dict for case in cases).drop(
+        columns="coords"
+    )
     df.plot(x="reference_head", y="max_height", ax=ax[0], label="Max Dam Height [m]")
     ax[0].set_xlabel("Reference Head [m]")
 
     lines, colors = [], []
-    for i, case in enumerate(cases):
+    for _i, case in enumerate(cases):
         coords_df = pandas.DataFrame.from_records(case.results_dict["coords"])
         lines.append(coords_df[["x", "y"]].to_numpy())
         colors.append(case.reference_head)
@@ -139,9 +137,7 @@ def plot_summary_results(cases: CaseList[HydrostaticDamCase]) -> None:
 
 def main() -> None:
     cases: CaseList[HydrostaticDamCase] = CaseList()
-    cases.add_cases_by_parameter_sweep(
-        HydrostaticDamCase, reference_head=np.arange(0.8, 10.1, 0.2)
-    )
+    cases.add_cases_by_parameter_sweep(HydrostaticDamCase, reference_head=np.arange(0.8, 10.1, 0.2))
     cases.run_all()
 
     plot_summary_results(cases)
