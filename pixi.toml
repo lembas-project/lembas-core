@@ -2,8 +2,17 @@
 python = ">=3.11"
 
 [environments]
+build = {features = ["build"], solve-group = "default"}
 default = {features = ["dev"], solve-group = "default"}
 docs = {features = ["docs"], solve-group = "default"}
+
+[feature.build.dependencies]
+anaconda-client = "*"
+rattler-build = "*"
+setuptools-scm = "*"
+
+[feature.build.tasks]
+build = "rattler-build build --recipe conda.recipe/ --output-dir dist/"
 
 [feature.dev.dependencies]
 codespell = "*"
