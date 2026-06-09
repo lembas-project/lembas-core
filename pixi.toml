@@ -1,0 +1,42 @@
+[dependencies]
+python = ">=3.11"
+
+[environments]
+default = {features = ["dev"], solve-group = "default"}
+docs = {features = ["docs"], solve-group = "default"}
+
+[feature.dev.dependencies]
+codespell = "*"
+identify = ">=2.6"
+mypy = "*"
+pre-commit = ">=4.0"
+pytest = ">=8.0"
+pytest-cov = "*"
+ruff = "*"
+types-toml = "*"
+
+[feature.docs.dependencies]
+myst-parser = "*"
+pydata-sphinx-theme = "*"
+sphinx = "*"
+sphinx-autobuild = "*"
+sphinx-autodoc-typehints = "*"
+
+[pypi-dependencies]
+lembas = {path = ".", editable = true}
+
+[tasks]
+format = "ruff format src/ tests/"
+format-check = "ruff format --check src/ tests/"
+lint = "ruff check src/ tests/"
+lint-fix = "ruff check --fix src/ tests/"
+pre-commit-install = "pre-commit install"
+pre-commit-run = "pre-commit run --all-files"
+test = "pytest tests/ -v"
+test-cov = "pytest tests/ -v --cov=src/lembas --cov-report=term-missing"
+typecheck = "mypy src/"
+
+[workspace]
+channels = ["conda-forge"]
+name = "lembas-core"
+platforms = ["linux-64", "osx-arm64", "osx-64"]

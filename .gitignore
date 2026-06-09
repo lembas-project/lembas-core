@@ -41,6 +41,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# pixi
+.pixi/
+
 # mypy
 .mypy_cache/
 
