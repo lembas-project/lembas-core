@@ -5,6 +5,8 @@ environments:
     - url: https://conda.anaconda.org/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
@@ -140,7 +142,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstandard-0.25.0-py314h0f05182_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb78ec9c_6.conda
       - pypi: https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl
-      - pypi: .
+      - pypi: ./
       osx-64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/anaconda-auth-0.15.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/anaconda-cli-base-0.8.2-pyhc364b38_0.conda
@@ -262,7 +264,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstandard-0.25.0-py314hd1e8ddb_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstd-1.5.7-h3eecb57_6.conda
       - pypi: https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl
-      - pypi: .
+      - pypi: ./
       osx-arm64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/anaconda-auth-0.15.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/anaconda-cli-base-0.8.2-pyhc364b38_0.conda
@@ -384,12 +386,14 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstandard-0.25.0-py314h9d33bd4_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hbf9d68e_6.conda
       - pypi: https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl
-      - pypi: .
+      - pypi: ./
   default:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
@@ -451,6 +455,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/shellingham-1.5.4-pyhd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_h366c992_103.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomli-2.4.1-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.0-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.26.7-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/types-toml-0.10.8.20260518-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
@@ -461,7 +466,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-4.1.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb78ec9c_6.conda
       - pypi: https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl
-      - pypi: .
+      - pypi: ./
       osx-64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/annotated-doc-0.0.4-pyhcf101f3_0.conda
@@ -518,6 +523,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/shellingham-1.5.4-pyhd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/tk-8.6.13-h7142dee_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomli-2.4.1-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.0-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.26.7-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/types-toml-0.10.8.20260518-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
@@ -528,7 +534,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-4.1.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstd-1.5.7-h3eecb57_6.conda
       - pypi: https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl
-      - pypi: .
+      - pypi: ./
       osx-arm64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/annotated-doc-0.0.4-pyhcf101f3_0.conda
@@ -585,6 +591,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/shellingham-1.5.4-pyhd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tk-8.6.13-h010d191_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomli-2.4.1-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.0-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.26.7-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/types-toml-0.10.8.20260518-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
@@ -595,12 +602,14 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-4.1.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hbf9d68e_6.conda
       - pypi: https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl
-      - pypi: .
+      - pypi: ./
   docs:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
@@ -667,6 +676,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-qthelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-serializinghtml-1.1.10-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_h366c992_103.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.0-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tornado-6.5.6-py314h5bd0f2a_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.26.7-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
@@ -676,7 +686,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/yaml-0.2.5-h280c20c_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb78ec9c_6.conda
       - pypi: https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl
-      - pypi: .
+      - pypi: ./
       osx-64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/accessible-pygments-0.0.5-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/alabaster-1.0.0-pyhd8ed1ab_1.conda
@@ -738,6 +748,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-qthelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-serializinghtml-1.1.10-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/tk-8.6.13-h7142dee_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.0-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/tornado-6.5.6-py314h217eccc_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.26.7-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
@@ -747,7 +758,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/yaml-0.2.5-h4132b18_3.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstd-1.5.7-h3eecb57_6.conda
       - pypi: https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl
-      - pypi: .
+      - pypi: ./
       osx-arm64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/accessible-pygments-0.0.5-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/alabaster-1.0.0-pyhd8ed1ab_1.conda
@@ -809,6 +820,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-qthelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-serializinghtml-1.1.10-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tk-8.6.13-h010d191_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.0-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tornado-6.5.6-py314h6c2aa35_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.26.7-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
@@ -818,7 +830,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/yaml-0.2.5-h925e9cb_3.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hbf9d68e_6.conda
       - pypi: https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl
-      - pypi: .
+      - pypi: ./
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
   build_number: 20
@@ -1860,15 +1872,16 @@ packages:
   purls: []
   size: 728002
   timestamp: 1774197446916
-- pypi: .
+- pypi: ./
   name: lembas
-  version: 0.1.1.dev2+gee4c42aee
-  sha256: 46ad730235d4cdb2892b233377854df76f2102e449e012ce9a47eb7a4eab3a60
+  version: 0.1.1.dev1+g88d6d0c93.d20260610
+  sha256: cd41889ac7461c4d4d2a753a530cdf4947bed716013f1c3c34cc8e4727b78bbb
   requires_dist:
   - pluggy<=1.6.0
   - typer<0.27
   - rich
   - toml
+  - tomlkit>=0.12
   - lembas[dev] ; extra == 'ci'
   - pytest<=9.0.2 ; extra == 'dev'
   - pytest-cov<=7.1.0 ; extra == 'dev'
@@ -1884,7 +1897,6 @@ packages:
   - planingfsi ; extra == 'examples'
   - pandas<=3.0.3 ; extra == 'examples'
   requires_python: '>=3.11'
-  editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/lerc-4.1.0-hdb68285_0.conda
   sha256: f84cb54782f7e9cea95e810ea8fef186e0652d0fa73d3009914fa2c1262594e1
   md5: a752488c68f2e7c456bcbd8f16eec275
