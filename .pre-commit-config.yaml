@@ -42,6 +42,15 @@ repos:
   - id: markdownlint-fix
     args: [--ignore, README.md, --disable, MD041]
 
+- repo: local
+  hooks:
+  - id: pixi-lock
+    name: pixi lock
+    entry: pixi lock
+    language: system
+    files: ^(pixi\.toml|pyproject\.toml)$
+    pass_filenames: false
+
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v1.20.2
   hooks:
