@@ -1,0 +1,59 @@
+name: pre-commit
+
+on:
+  push:
+    branches:
+    - main
+  merge_group:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10   # v6.0.3
+      with:
+        fetch-depth: 0
+
+    - name: Set up pixi
+      uses: prefix-dev/setup-pixi@v0.8.1
+      with:
+        pixi-version: v0.44.0
+
+    - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae   # v5.0.5
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit|${{ runner.arch }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+    - name: Run pre-commit
+      id: updates
+      run: |
+        pixi run pre-commit-run || :
+        if git status --porcelain | grep -q .; then
+          echo "changed=1" >> "${GITHUB_OUTPUT}"
+        fi
+
+    - name: Commit and fail if changes occurred
+      if: steps.updates.outputs.changed == 1
+      env:
+        REF: ${{ github.head_ref }}
+      run: |
+        git fetch origin "refs/heads/${REF}:refs/remotes/origin/${REF}"
+        git checkout "${REF}"
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add -u
+        git commit -m "chore(pre-commit): auto-fix"
+        git push
+
+        echo "::error::Changes were committed. A new CI run will start."
+        exit 1
