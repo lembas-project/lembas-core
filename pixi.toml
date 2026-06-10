@@ -12,7 +12,7 @@ rattler-build = "*"
 setuptools-scm = "*"
 
 [feature.build.tasks]
-build = "rattler-build build --recipe conda.recipe/ --output-dir dist/"
+build = "python scripts/with_version.py rattler-build build --recipe conda.recipe/ --output-dir dist/"
 upload = "anaconda --verbose --token $ANACONDA_ORG_TOKEN upload --user lembas-project $ANACONDA_LABEL --force"
 
 [feature.dev.dependencies]
