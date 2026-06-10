@@ -10,10 +10,8 @@ source:
 build:
   number: 0
   noarch: python
-  script_env:
-    - SETUPTOOLS_SCM_PRETEND_VERSION=${{ env.get("PKG_VERSION") | default("0.0.0") }}
   script:
-    - python -m pip install . -vv --no-deps --no-build-isolation
+    - SETUPTOOLS_SCM_PRETEND_VERSION=${{ env.get("PKG_VERSION") | default("0.0.0") }} python -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   host:
