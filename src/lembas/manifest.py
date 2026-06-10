@@ -121,15 +121,19 @@ def synthesize_pixi_manifest(project_root: Path | None = None) -> str:
     if deps:
         doc["dependencies"] = deps
 
-    # [tasks] - pass through
+    # [tasks] - pass through, adding cwd=".." so tasks run from project root
     if tasks := manifest.get("tasks"):
         tasks_table = tomlkit.table()
         for name, task in tasks.items():
             if isinstance(task, str):
-                tasks_table[name] = task
+                # Simple string task - convert to dict with cwd
+                tasks_table[name] = {"cmd": task, "cwd": ".."}
             elif isinstance(task, dict):
-                # Complex task with cmd, depends-on, etc.
-                tasks_table[name] = task
+                # Complex task - add cwd if not already set
+                task_dict = dict(task)
+                if "cwd" not in task_dict:
+                    task_dict["cwd"] = ".."
+                tasks_table[name] = task_dict
         doc["tasks"] = tasks_table
 
     # [environments] - pass through if present
