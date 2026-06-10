@@ -7,7 +7,8 @@ dependencies = [
   "pluggy <=1.6.0",
   "typer <0.27",
   "rich",
-  "toml"
+  "toml",
+  "tomlkit >=0.12"
 ]
 description = "Lifecycle Engineering Model-Based Analysis System"
 dynamic = ["version"]
