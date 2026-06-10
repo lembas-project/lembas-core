@@ -2,7 +2,7 @@ schema_version: 1
 
 package:
   name: lembas
-  version: ${{ env.get("PKG_VERSION", "0.0.0") }}
+  version: ${{ env.get("PKG_VERSION") | default("0.0.0") }}
 
 source:
   path: ..
@@ -10,8 +10,10 @@ source:
 build:
   number: 0
   noarch: python
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION=${{ env.get("PKG_VERSION") | default("0.0.0") }}
   script:
-    - SETUPTOOLS_SCM_PRETEND_VERSION=${{ env.get("PKG_VERSION", "0.0.0") }} python -m pip install . -vv --no-deps --no-build-isolation
+    - python -m pip install . -vv --no-deps --no-build-isolation
 
 requirements:
   host:

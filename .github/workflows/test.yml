@@ -45,11 +45,14 @@ jobs:
       with:
         files: ./test-reports/coverage.xml
         env_vars: OS,PYTHON
-  # This check job runs to ensure all tests have passed, such that we can use it as a "wildcard" for branch
-  # protection to ensure all tests pass before a PR can be merged.
+  build:
+    uses: ./.github/workflows/build.yml
+
+  # This check job runs to ensure all tests and builds have passed, such that we can use it as a "wildcard"
+  # for branch protection to ensure all tests pass before a PR can be merged.
   check:
     if: always()
-    needs: [test]
+    needs: [test, build]
     runs-on: ubuntu-latest
     steps:
     - name: Decide whether all required jobs succeeded or failed
