@@ -262,7 +262,7 @@ def _run_study_cases() -> None:
     study_config = manifest.get("study", {})
 
     if "cases" not in study_config:
-        raise Abort("No [study].cases defined in lembas.toml")
+        raise Abort("No \\[study].cases defined in lembas.toml")
 
     # Load local plugins first
     load_local_plugins()
