@@ -225,12 +225,21 @@ def shell() -> None:
 
 @app.command("run")
 def run_task(
-    task: str = typer.Argument(..., help="Task name to run"),
+    task: str | None = typer.Argument(None, help="Task name to run, or omit to run cases"),
     args: list[str] | None = typer.Argument(None, help="Additional arguments"),  # noqa: B008
 ) -> None:
-    """Run a task defined in lembas.toml."""
+    """Run cases or a task defined in lembas.toml.
+
+    Without arguments, loads and runs all cases from [study].cases.
+    With a task name, runs that pixi task.
+    """
     if not get_lembas_manifest_path().exists():
         raise Abort("No lembas.toml found. Run 'lembas init' first.")
+
+    # If no task specified, run the study cases
+    if task is None:
+        _run_study_cases()
+        return
 
     manifest = load_lembas_manifest()
     tasks = manifest.get("tasks", {})
@@ -242,6 +251,29 @@ def run_task(
 
     exit_code = _run_pixi(["run", task, *(args or [])])
     raise typer.Exit(exit_code)
+
+
+def _run_study_cases() -> None:
+    """Load and run all cases defined in [study].cases."""
+    from lembas import load_local_plugins
+    from lembas.study import load_cases
+
+    manifest = load_lembas_manifest()
+    study_config = manifest.get("study", {})
+
+    if "cases" not in study_config:
+        raise Abort("No [study].cases defined in lembas.toml")
+
+    # Load local plugins first
+    load_local_plugins()
+
+    # Load and run cases
+    cases = load_cases()
+    console.print(f"Running {len(cases)} cases...")
+
+    cases.run_all()
+
+    raise Okay(f"Completed {len(cases)} cases")
 
 
 @app.command()
