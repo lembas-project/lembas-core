@@ -254,26 +254,20 @@ def run_task(
 
 
 def _run_study_cases() -> None:
-    """Load and run all cases defined in [study].cases."""
-    from lembas import load_local_plugins
-    from lembas.study import load_cases
+    """Run cases via the synthesized _lembas_run pixi task.
 
+    This ensures cases run in the project's pixi environment where
+    all dependencies (including those used by local plugins) are available.
+    """
     manifest = load_lembas_manifest()
     study_config = manifest.get("study", {})
 
     if "cases" not in study_config:
         raise Abort("No \\[study].cases defined in lembas.toml")
 
-    # Load local plugins first
-    load_local_plugins()
-
-    # Load and run cases
-    cases = load_cases()
-    console.print(f"Running {len(cases)} cases...")
-
-    cases.run_all()
-
-    raise Okay(f"Completed {len(cases)} cases")
+    # Run via pixi to ensure we're in the correct environment
+    exit_code = _run_pixi(["run", "_lembas_run"])
+    raise typer.Exit(exit_code)
 
 
 @app.command()
