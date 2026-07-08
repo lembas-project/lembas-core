@@ -6,11 +6,13 @@ from lembas.param import InputParameter
 from lembas.plugins import load_plugins_from_file
 from lembas.plugins import registry
 from lembas.results import result
+from lembas.study import load_cases
 
 __all__ = [
     "Case",
     "CaseList",
     "InputParameter",
+    "load_cases",
     "load_local_plugins",
     "load_plugins_from_file",
     "registry",
