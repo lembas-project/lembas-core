@@ -42,7 +42,7 @@ def load_lembas_manifest(project_root: Path | None = None) -> dict[str, Any]:
 
 def compute_manifest_hash(manifest: dict[str, Any]) -> str:
     """Compute SHA-256 hash of the relevant manifest sections for staleness check."""
-    relevant_sections = ["project", "dependencies", "plugins", "tasks", "environments"]
+    relevant_sections = ["project", "dependencies", "plugins", "tasks", "environments", "study"]
     relevant = {k: v for k, v in manifest.items() if k in relevant_sections}
     canonical = toml.dumps(relevant)
     return hashlib.sha256(canonical.encode()).hexdigest()
@@ -122,18 +122,37 @@ def synthesize_pixi_manifest(project_root: Path | None = None) -> str:
         doc["dependencies"] = deps
 
     # [tasks] - pass through, adding cwd=".." so tasks run from project root
-    if tasks := manifest.get("tasks"):
-        tasks_table = tomlkit.table()
-        for name, task in tasks.items():
-            if isinstance(task, str):
-                # Simple string task - convert to dict with cwd
-                tasks_table[name] = {"cmd": task, "cwd": ".."}
-            elif isinstance(task, dict):
-                # Complex task - add cwd if not already set
-                task_dict = dict(task)
-                if "cwd" not in task_dict:
-                    task_dict["cwd"] = ".."
-                tasks_table[name] = task_dict
+    tasks_table = tomlkit.table()
+
+    # Inject _lembas_run task if [study].cases is defined
+    study_config = manifest.get("study", {})
+    if "cases" in study_config:
+        tasks_table["_lembas_run"] = {
+            "cmd": (
+                "python -c '"
+                "from lembas import load_local_plugins, load_cases; "
+                "load_local_plugins(); "
+                "cases = load_cases(); "
+                'print(f"Running {len(cases)} cases..."); '
+                "cases.run_all(); "
+                'print(f"Completed {len(cases)} cases")\''
+            ),
+            "cwd": "..",
+        }
+
+    # Add user-defined tasks
+    for name, task in manifest.get("tasks", {}).items():
+        if isinstance(task, str):
+            # Simple string task - convert to dict with cwd
+            tasks_table[name] = {"cmd": task, "cwd": ".."}
+        elif isinstance(task, dict):
+            # Complex task - add cwd if not already set
+            task_dict = dict(task)
+            if "cwd" not in task_dict:
+                task_dict["cwd"] = ".."
+            tasks_table[name] = task_dict
+
+    if tasks_table:
         doc["tasks"] = tasks_table
 
     # [environments] - pass through if present
