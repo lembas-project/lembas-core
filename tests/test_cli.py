@@ -115,3 +115,83 @@ def test_run_case_missing_case_handler(invoke_cli: CLIInvoker) -> None:
     result = invoke_cli("case", "NonExistentCase")
     assert result.exit_code == 1, result.stdout
     assert "Could not find NonExistentCase in the case handler registry" in result.stdout
+
+
+def test_run_without_args_runs_study_cases(
+    invoke_cli: CLIInvoker, run_path: Path, plugin_module_path: Path
+) -> None:
+    """Running `lembas run` without args loads and runs cases from [study].cases."""
+    # Create lembas.toml with study config
+    lembas_toml = run_path / "lembas.toml"
+    lembas_toml.write_text(
+        dedent(f"""\
+        [project]
+        name = "test-study"
+        type = "study"
+
+        [local-plugins]
+        my_mod = "{plugin_module_path.name}"
+
+        [study]
+        cases = "cases.yaml"
+        """)
+    )
+
+    # Create cases.yaml
+    cases_yaml = run_path / "cases.yaml"
+    cases_yaml.write_text(
+        dedent("""\
+        - handler: MyCase
+          expansion: explicit
+          parameters:
+            my_param: 3.0
+        """)
+    )
+
+    result = invoke_cli("run")
+
+    assert result.exit_code == 0, result.stdout
+    assert "Running 1 cases" in result.stdout
+    assert "Completed 1 cases" in result.stdout
+
+
+def test_run_without_args_no_study_cases_errors(invoke_cli: CLIInvoker, run_path: Path) -> None:
+    """Running `lembas run` without [study].cases shows an error."""
+    # Create lembas.toml without study.cases
+    lembas_toml = run_path / "lembas.toml"
+    lembas_toml.write_text(
+        dedent("""\
+        [project]
+        name = "test-study"
+        type = "study"
+        """)
+    )
+
+    result = invoke_cli("run")
+
+    assert result.exit_code == 1, result.stdout
+    assert "[study].cases" in result.stdout
+
+
+def test_run_with_task_runs_pixi_task(invoke_cli: CLIInvoker, run_path: Path) -> None:
+    """Running `lembas run <task>` still runs a pixi task."""
+    # Create lembas.toml with a task
+    lembas_toml = run_path / "lembas.toml"
+    lembas_toml.write_text(
+        dedent("""\
+        [project]
+        name = "test-study"
+        type = "study"
+        channels = ["conda-forge"]
+        platforms = ["linux-64", "osx-arm64"]
+
+        [tasks]
+        hello = "echo hello"
+        """)
+    )
+
+    result = invoke_cli("run", "nonexistent")
+
+    # Task doesn't exist, so we get an error
+    assert result.exit_code == 1
+    assert "Unknown task: nonexistent" in result.stdout
