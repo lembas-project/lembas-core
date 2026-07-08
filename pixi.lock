@@ -453,6 +453,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomli-2.4.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.0-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.26.7-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/types-pyyaml-6.0.12.20260518-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/types-toml-0.10.8.20260518-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda
@@ -521,6 +522,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomli-2.4.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.0-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.26.7-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/types-pyyaml-6.0.12.20260518-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/types-toml-0.10.8.20260518-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda
@@ -589,6 +591,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomli-2.4.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tomlkit-0.15.0-pyha770c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typer-0.26.7-pyhcf101f3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/types-pyyaml-6.0.12.20260518-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/types-toml-0.10.8.20260518-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda
@@ -1868,14 +1871,15 @@ packages:
   timestamp: 1774197446916
 - pypi: .
   name: lembas
-  version: 0.1.1.dev5+g299ead556
-  sha256: cd41889ac7461c4d4d2a753a530cdf4947bed716013f1c3c34cc8e4727b78bbb
+  version: 0.1.2.dev2+g2c53899f4
+  sha256: 0a18f403479b11187cd160ad2d68acea855c03f8721b4c998c812f7b74f178d5
   requires_dist:
   - pluggy<=1.6.0
   - typer<0.27
   - rich
   - toml
   - tomlkit>=0.12
+  - pyyaml>=6.0
   - lembas[dev] ; extra == 'ci'
   - pytest<=9.0.2 ; extra == 'dev'
   - pytest-cov<=7.1.0 ; extra == 'dev'
@@ -4129,6 +4133,17 @@ packages:
   - pkg:pypi/typer?source=hash-mapping
   size: 185949
   timestamp: 1780494828822
+- conda: https://conda.anaconda.org/conda-forge/noarch/types-pyyaml-6.0.12.20260518-pyhcf101f3_0.conda
+  sha256: 58eb35e905356d7105db51e1cd7eb5a9f2029e0d0bb345215c0eb525babaffb4
+  md5: 8c9d908beae2f052bf188c41c85f0b80
+  depends:
+  - python >=3.10
+  - python
+  license: Apache-2.0 AND MIT
+  purls:
+  - pkg:pypi/types-pyyaml?source=hash-mapping
+  size: 26875
+  timestamp: 1779101988372
 - conda: https://conda.anaconda.org/conda-forge/noarch/types-toml-0.10.8.20260518-pyhcf101f3_0.conda
   sha256: 368352daaccc2ac88a614835195f8492b7b986cda23e634f5bbf5cbdc1dc7e48
   md5: c34839dee9c06aa5bff05f9b23053695
