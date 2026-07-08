@@ -1871,8 +1871,8 @@ packages:
   timestamp: 1774197446916
 - pypi: .
   name: lembas
-  version: 0.1.2.dev2+g2c53899f4
-  sha256: 0a18f403479b11187cd160ad2d68acea855c03f8721b4c998c812f7b74f178d5
+  version: 0.1.2.dev11+g198060e67
+  sha256: bf891868746ecfee30c13cfdca8c20a7919770a88bce12b926d02bcf089243d6
   requires_dist:
   - pluggy<=1.6.0
   - typer<0.27
@@ -1881,7 +1881,7 @@ packages:
   - tomlkit>=0.12
   - pyyaml>=6.0
   - lembas[dev] ; extra == 'ci'
-  - pytest<=9.0.2 ; extra == 'dev'
+  - pytest<=9.1.1 ; extra == 'dev'
   - pytest-cov<=7.1.0 ; extra == 'dev'
   - mypy ; extra == 'dev'
   - jinja2<3.1.7 ; extra == 'dev'
