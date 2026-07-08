@@ -313,6 +313,21 @@ def status() -> None:
         console.print("\n[yellow]⚠ No .lembas/pixi.toml. Run 'lembas install' to create.[/yellow]")
 
 
+@app.command("_run-cases", hidden=True)
+def run_cases_internal() -> None:
+    """Internal command to run study cases (called by synthesized pixi task)."""
+    from lembas import load_local_plugins
+    from lembas.study import load_cases
+
+    load_local_plugins()
+    cases = load_cases()
+
+    console.print(f"Running {len(cases)} cases...")
+    cases.run_all()
+
+    raise Okay(f"Completed {len(cases)} cases")
+
+
 @app.command("case")
 def run_case(
     case_handler_name: str,

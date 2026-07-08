@@ -127,17 +127,8 @@ def synthesize_pixi_manifest(project_root: Path | None = None) -> str:
     # Inject _lembas_run task if [study].cases is defined
     study_config = manifest.get("study", {})
     if "cases" in study_config:
-        # Use inline Python to avoid version dependency on lembas CLI
-        run_script = (
-            "from lembas import load_local_plugins, load_cases; "
-            "load_local_plugins(); "
-            "cases = load_cases(); "
-            "print(f'Running {len(cases)} cases...'); "
-            "cases.run_all(); "
-            "print(f'Completed {len(cases)} cases')"
-        )
         tasks_table["_lembas_run"] = {
-            "cmd": f'python -c "{run_script}"',
+            "cmd": "lembas _run-cases",
             "cwd": "..",
         }
 
