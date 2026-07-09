@@ -12,6 +12,7 @@ import tomlkit
 
 LEMBAS_DIR = ".lembas"
 LEMBAS_MANIFEST = "lembas.toml"
+LEMBAS_LOCK = "lembas.lock"
 PIXI_MANIFEST = "pixi.toml"
 
 
@@ -30,6 +31,12 @@ def get_lembas_manifest_path(project_root: Path | None = None) -> Path:
 def get_pixi_manifest_path(project_root: Path | None = None) -> Path:
     """Get the synthesized pixi.toml path inside .lembas/."""
     return get_lembas_dir(project_root) / PIXI_MANIFEST
+
+
+def get_lockfile_path(project_root: Path | None = None) -> Path:
+    """Get the lembas.lock path at project root."""
+    root = project_root or Path.cwd()
+    return root / LEMBAS_LOCK
 
 
 def load_lembas_manifest(project_root: Path | None = None) -> dict[str, Any]:
@@ -181,7 +188,15 @@ def ensure_pixi_manifest(project_root: Path | None = None) -> Path:
 def run_pixi(
     args: list[str], project_root: Path | None = None
 ) -> subprocess.CompletedProcess[bytes]:
-    """Run pixi with the synthesized manifest."""
+    """Run pixi with the synthesized manifest and lockfile at project root."""
     pixi_path = ensure_pixi_manifest(project_root)
-    cmd = ["pixi", "--manifest-path", str(pixi_path), *args]
+    lockfile_path = get_lockfile_path(project_root)
+    cmd = [
+        "pixi",
+        "--manifest-path",
+        str(pixi_path),
+        "--lockfile-path",
+        str(lockfile_path),
+        *args,
+    ]
     return subprocess.run(cmd, check=False)
