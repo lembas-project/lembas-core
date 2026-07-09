@@ -12,7 +12,6 @@ from rich.console import Console
 from lembas._version import __version__
 from lembas.manifest import ensure_pixi_manifest
 from lembas.manifest import get_lembas_manifest_path
-from lembas.manifest import get_lockfile_path
 from lembas.manifest import get_pixi_manifest_path
 from lembas.manifest import is_pixi_manifest_stale
 from lembas.manifest import load_lembas_manifest
@@ -44,29 +43,14 @@ class Abort(typer.Abort):
 
 
 def _run_pixi(args: list[str]) -> int:
-    """Run pixi with the synthesized manifest and lockfile, returning exit code."""
+    """Run pixi with the synthesized manifest, returning exit code."""
     pixi_path = ensure_pixi_manifest()
-    lockfile_path = get_lockfile_path()
-    # pixi expects: pixi <command> --manifest-path <path> --lockfile-path <path> [args]
-    # Insert flags after the first arg (the command)
+    # pixi expects: pixi <command> --manifest-path <path> [args]
+    # Insert --manifest-path after the first arg (the command)
     if args:
-        cmd = [
-            "pixi",
-            args[0],
-            "--manifest-path",
-            str(pixi_path),
-            "--lockfile-path",
-            str(lockfile_path),
-            *args[1:],
-        ]
+        cmd = ["pixi", args[0], "--manifest-path", str(pixi_path), *args[1:]]
     else:
-        cmd = [
-            "pixi",
-            "--manifest-path",
-            str(pixi_path),
-            "--lockfile-path",
-            str(lockfile_path),
-        ]
+        cmd = ["pixi", "--manifest-path", str(pixi_path)]
     result = subprocess.run(cmd, check=False)
     return result.returncode
 
@@ -232,20 +216,11 @@ def shell() -> None:
 
     ensure_pixi_manifest()
     pixi_path = get_pixi_manifest_path()
-    lockfile_path = get_lockfile_path()
 
     # Use exec to replace the current process
     import os
 
-    os.execlp(
-        "pixi",
-        "pixi",
-        "--manifest-path",
-        str(pixi_path),
-        "--lockfile-path",
-        str(lockfile_path),
-        "shell",
-    )
+    os.execlp("pixi", "pixi", "--manifest-path", str(pixi_path), "shell")
 
 
 @app.command("run")
