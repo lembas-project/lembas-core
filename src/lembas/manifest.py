@@ -162,14 +162,23 @@ def synthesize_pixi_manifest(project_root: Path | None = None) -> str:
 
 
 def write_pixi_manifest(project_root: Path | None = None) -> Path:
-    """Synthesize and write pixi.toml to .lembas/ directory."""
+    """Synthesize and write pixi.toml to .lembas/ directory.
+
+    Also creates a symlink from .lembas/pixi.lock -> ../lembas.lock so that
+    the lockfile appears at project root where users can commit it.
+    """
     lembas_dir = get_lembas_dir(project_root)
     lembas_dir.mkdir(exist_ok=True)
 
     # Create .gitignore in .lembas/ if it doesn't exist
     gitignore = lembas_dir / ".gitignore"
     if not gitignore.exists():
-        gitignore.write_text(".pixi/\n")
+        gitignore.write_text(".pixi/\npixi.lock\n")
+
+    # Create symlink for lockfile: .lembas/pixi.lock -> ../lembas.lock
+    pixi_lock_path = lembas_dir / "pixi.lock"
+    if not pixi_lock_path.exists() and not pixi_lock_path.is_symlink():
+        pixi_lock_path.symlink_to(f"../{LEMBAS_LOCK}")
 
     pixi_path = get_pixi_manifest_path(project_root)
     content = synthesize_pixi_manifest(project_root)
@@ -188,15 +197,7 @@ def ensure_pixi_manifest(project_root: Path | None = None) -> Path:
 def run_pixi(
     args: list[str], project_root: Path | None = None
 ) -> subprocess.CompletedProcess[bytes]:
-    """Run pixi with the synthesized manifest and lockfile at project root."""
+    """Run pixi with the synthesized manifest."""
     pixi_path = ensure_pixi_manifest(project_root)
-    lockfile_path = get_lockfile_path(project_root)
-    cmd = [
-        "pixi",
-        "--manifest-path",
-        str(pixi_path),
-        "--lockfile-path",
-        str(lockfile_path),
-        *args,
-    ]
+    cmd = ["pixi", "--manifest-path", str(pixi_path), *args]
     return subprocess.run(cmd, check=False)
