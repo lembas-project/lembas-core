@@ -31,6 +31,9 @@ class InputParameter:
         max: The maximum value for the parameter (if it is a float).
         control: Set as True to indicate a runtime control parameter.
             These parameters will be excluded from the `case.inputs` dictionary.
+        path_format: Format specification for rendering the value in directory paths.
+            For floats, defaults to ".6g" (strips trailing zeros). For other types, uses str().
+        short_name: Optional short alias for use in directory paths instead of the full parameter name.
 
     """
 
@@ -44,6 +47,8 @@ class InputParameter:
         min: float | None = None,
         max: float | None = None,
         control: bool = False,
+        path_format: str | None = None,
+        short_name: str | None = None,
     ):
         if type is not None:
             self._type = type
@@ -58,6 +63,8 @@ class InputParameter:
         self._min_value = min
         self._max_value = max
         self._control = control
+        self._path_format = path_format
+        self._short_name = short_name
 
     def __set_name__(self, owner: type[Case], name: str) -> None:
         self._name = name
@@ -101,3 +108,22 @@ class InputParameter:
     def include_in_inputs_dict(self) -> bool:
         """If True, include the parameter in the `case.inputs` dictionary."""
         return not self._control
+
+    @property
+    def path_name(self) -> str:
+        """Name to use in directory paths.
+
+        Returns short_name if set, otherwise the full parameter name.
+        """
+        return self._short_name or self._name
+
+    def format_for_path(self, value: Any) -> str:
+        """Format a value for use in directory paths.
+
+        Uses path_format if set, otherwise defaults to ".6g" for floats and str() for other types.
+        """
+        if self._path_format is not None:
+            return format(value, self._path_format)
+        if isinstance(value, float):
+            return format(value, ".6g")
+        return str(value)

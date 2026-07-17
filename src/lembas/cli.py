@@ -8,6 +8,7 @@ from typing import Any
 
 import typer
 from rich.console import Console
+from rich.table import Table
 
 from lembas._version import __version__
 from lembas.manifest import ensure_pixi_manifest
@@ -22,6 +23,10 @@ from lembas.plugins import registry
 
 console = Console()
 app = typer.Typer(add_completion=False)
+
+# Subcommand group for case management
+cases_app = typer.Typer(help="Manage study cases")
+app.add_typer(cases_app, name="cases")
 
 
 class Okay(typer.Exit):
@@ -328,7 +333,9 @@ def run_cases_internal() -> None:
     raise Okay(f"Completed {len(cases)} cases")
 
 
-@app.command("case")
+# TODO: Merge this into `lembas run --handler <name>` and deprecate this command.
+# See: https://github.com/lembas-project/lembas-core/issues/180
+@app.command("case", hidden=True)
 def run_case(
     case_handler_name: str,
     params: list[str] | None = typer.Argument(None),  # noqa: B008
@@ -355,3 +362,138 @@ def run_case(
     case.run()
 
     raise Okay("Case complete")
+
+
+def _print_cases_table(cases: list) -> None:
+    """Print a table of cases with styled status and notes."""
+    from lembas.index import CaseStatus
+
+    status_styles = {
+        CaseStatus.COMPLETE: "[green]complete[/green]",
+        CaseStatus.MISSING: "[red]missing[/red]",
+        CaseStatus.PENDING: "[yellow]pending[/yellow]",
+    }
+
+    table = Table(title="Cases")
+    table.add_column("ID", style="cyan")
+    table.add_column("HANDLER")
+    table.add_column("STATUS")
+    table.add_column("PATH")
+    table.add_column("NOTES")
+
+    for case in cases:
+        styled_status = status_styles.get(case.status, case.status.value)
+        styled_notes = f"[yellow]{case.notes}[/yellow]" if case.notes else ""
+        table.add_row(case.short_id, case.handler, styled_status, case.path, styled_notes)
+
+    console.print(table)
+
+
+@cases_app.callback(invoke_without_command=True)
+def cases_callback(ctx: typer.Context) -> None:
+    """Manage study cases."""
+    if ctx.invoked_subcommand is None:
+        console.print(ctx.get_help())
+
+
+@cases_app.command("list")
+def cases_list(
+    pending: bool = typer.Option(False, "--pending", "-p", help="Show only pending cases"),
+    complete: bool = typer.Option(False, "--complete", "-c", help="Show only complete cases"),
+) -> None:
+    """List all cases (specified and run) with their status.
+
+    By default shows all cases from cases.yaml and any that have been run.
+    Use --pending or --complete to filter (mutually exclusive).
+    """
+    from lembas.index import CaseStatus
+    from lembas.index import ensure_index_fresh
+    from lembas.index import gather_case_info
+    from lembas.index import load_specified_cases
+
+    if pending and complete:
+        raise Abort("--pending and --complete are mutually exclusive")
+
+    # Load index, auto-reindex if stale
+    index, was_reindexed = ensure_index_fresh()
+    if was_reindexed:
+        console.print("[dim]Index stale, reindexed.[/dim]")
+
+    # Load specified cases from cases.yaml
+    specified_result = load_specified_cases()
+    if specified_result.warning:
+        console.print(f"[yellow]Warning: {specified_result.warning}[/yellow]\n")
+
+    # Determine filter
+    filter_status = None
+    if pending:
+        filter_status = CaseStatus.PENDING
+    elif complete:
+        filter_status = CaseStatus.COMPLETE
+
+    # Gather case info
+    cases = gather_case_info(index, specified_result.cases, filter_status)
+
+    if not cases and not index and not specified_result.cases:
+        console.print("No cases found. Add cases to cases.yaml or run 'lembas run'.")
+        return
+
+    _print_cases_table(cases)
+
+
+@cases_app.command("reindex")
+def cases_reindex() -> None:
+    """Rebuild index from case.toml files.
+
+    Scans for case.toml files, extracts handler and inputs,
+    recomputes case IDs, and rebuilds .lembas/cases.json.
+    """
+    from lembas.index import CASE_TOML_PATH
+    from lembas.index import reindex_cases
+
+    console.print(f"Scanning cases/**/{CASE_TOML_PATH}...")
+    index = reindex_cases()
+    console.print(f"Found {len(index)} cases, rebuilt index.")
+
+
+@cases_app.command("clean")
+def cases_clean(
+    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompt"),
+) -> None:
+    """Clean up stale index entries and remove duplicate path references.
+
+    Removes index entries where the path no longer exists.
+    Shows what will be cleaned and prompts for confirmation unless --force is used.
+    """
+    from lembas.index import clean_index
+    from lembas.index import load_case_index
+    from lembas.index import save_case_index
+
+    if not load_case_index():
+        console.print("Index is empty, nothing to clean.")
+        return
+
+    result = clean_index()
+
+    # Print what will be cleaned
+    for short_id, path in result.stale_entries:
+        console.print(f"[red]STALE:[/red] {short_id} -> {path} (no existing paths)")
+    for short_id, removed in result.pruned_entries:
+        console.print(f"[yellow]PRUNE:[/yellow] {short_id} removed {removed} missing path(s)")
+
+    if result.is_clean:
+        console.print("[green]Index is clean, no changes needed.[/green]")
+        return
+
+    # Prompt for confirmation unless --force
+    if not force:
+        console.print(f"\nWill remove {len(result.stale_entries)} stale entries.")
+        confirm = typer.confirm("Proceed?")
+        if not confirm:
+            console.print("Aborted.")
+            return
+
+    save_case_index(result.cleaned_index)
+    console.print(
+        f"[green]Cleaned index:[/green] removed {len(result.stale_entries)} stale entries."
+    )
