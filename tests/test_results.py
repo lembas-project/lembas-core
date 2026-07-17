@@ -1,6 +1,9 @@
+import os
+
 import pytest
 
 from lembas import Case
+from lembas import CaseNotRunError
 from lembas import result
 
 
@@ -23,36 +26,63 @@ class MyCase(Case):
 
 
 @pytest.fixture()
-def case() -> MyCase:
-    return MyCase()
+def case(tmp_path: pytest.TempPathFactory) -> MyCase:  # type: ignore[misc]
+    # Change to temp directory so case_dir is writable
+    old_cwd = os.getcwd()
+    os.chdir(tmp_path)
+    c = MyCase()
+    yield c
+    os.chdir(old_cwd)
+
+
+@pytest.fixture()
+def run_case(case: MyCase) -> MyCase:
+    """Fixture that provides a case that has been run."""
+    case.run()
+    return case
 
 
 def test_case_results_parent(case: MyCase) -> None:
     assert case.results.parent is case
 
 
-def test_case_results_get_attr_no_args(case: MyCase) -> None:
-    assert case.results.some_result == "some_result_value"
+def test_case_results_raises_before_run(case: MyCase) -> None:
+    """Accessing results before run() raises CaseNotRunError."""
+    with pytest.raises(CaseNotRunError) as exc_info:
+        _ = case.results.some_result
+    assert "has not been run" in str(exc_info.value)
+    assert "some_result" in str(exc_info.value)
 
 
-def test_cas_results_get_attr_with_args_single(case: MyCase) -> None:
-    assert case.results.single_result == "single_result_value"
+def test_case_results_get_attr_no_args(run_case: MyCase) -> None:
+    assert run_case.results.some_result == "some_result_value"
 
 
-def test_case_results_get_attr_multiple(case: MyCase) -> None:
-    assert case.results.first_result == "first_result_value"
-    assert case.results.get("second_result") == "second_result_value"
+def test_cas_results_get_attr_with_args_single(run_case: MyCase) -> None:
+    assert run_case.results.single_result == "single_result_value"
 
 
-def test_case_results_incorrect_number_of_results(case: MyCase) -> None:
+def test_case_results_get_attr_multiple(run_case: MyCase) -> None:
+    assert run_case.results.first_result == "first_result_value"
+    assert run_case.results.get("second_result") == "second_result_value"
+
+
+def test_case_results_incorrect_number_of_results(run_case: MyCase) -> None:
     with pytest.raises(ValueError):
-        _ = case.results.first_result_expected
+        _ = run_case.results.first_result_expected
 
 
-def test_case_results_undefined(case: MyCase) -> None:
+def test_case_results_undefined(run_case: MyCase) -> None:
     with pytest.raises(AttributeError):
-        _ = case.results.nonexistent_result
+        _ = run_case.results.nonexistent_result
 
 
 def test_case_results_method_provides_results(case: MyCase) -> None:
     assert MyCase.some_result._provides_results == ("some_result",)  # type: ignore
+
+
+def test_case_has_run_property(case: MyCase) -> None:
+    """has_run is False before run(), True after."""
+    assert case.has_run is False
+    case.run()
+    assert case.has_run is True

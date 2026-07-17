@@ -23,7 +23,13 @@ from lembas.logging import logger
 from lembas.param import InputParameter
 from lembas.results import Results
 
-__all__ = ["Case", "CaseList", "step"]
+__all__ = ["Case", "CaseList", "CaseNotRunError", "step"]
+
+
+class CaseNotRunError(Exception):
+    """Raised when attempting to access results before the case has been run."""
+
+    pass
 
 
 LEMBAS_CASE_TOML_FILENAME = Path("lembas", "case.toml")
@@ -144,6 +150,14 @@ class Case:
     def short_id(self) -> str:
         """Short form of id for display (first 8 characters)."""
         return self.id[:8]
+
+    @property
+    def has_run(self) -> bool:
+        """Whether this case has been run.
+
+        Checks for the existence of the lembas/case.toml file in the case directory.
+        """
+        return (self.case_dir / LEMBAS_CASE_TOML_FILENAME).exists()
 
     @classmethod
     def _get_input_parameters_by_declaration_order(cls) -> list[InputParameter]:

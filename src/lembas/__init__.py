@@ -1,6 +1,7 @@
 from lembas._version import __version__
 from lembas.case import Case
 from lembas.case import CaseList
+from lembas.case import CaseNotRunError
 from lembas.case import step
 from lembas.param import InputParameter
 from lembas.plugins import load_plugins_from_file
@@ -11,6 +12,7 @@ from lembas.study import load_cases
 __all__ = [
     "Case",
     "CaseList",
+    "CaseNotRunError",
     "InputParameter",
     "load_cases",
     "load_local_plugins",
