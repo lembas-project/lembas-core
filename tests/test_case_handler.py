@@ -52,17 +52,18 @@ class MyCase(Case):
 
 @pytest.fixture()
 def case() -> MyCase:
-    return MyCase(my_param=3.0)
+    return MyCase(my_param=3.0, required_param=1.0)
 
 
 def test_case_parameter_default(case: MyCase) -> None:
     assert case.param_with_default == pytest.approx(10.0)
 
 
-def test_case_parameter_required_raises_exception(case: MyCase) -> None:
+def test_case_parameter_required_raises_exception() -> None:
     """A parameter with no default that is not set raises an exception when accessed."""
+    case_without_required = MyCase(my_param=3.0)
     with pytest.raises(AttributeError):
-        _ = case.required_param
+        _ = case_without_required.required_param
 
 
 def test_case_parameter_type_required() -> None:

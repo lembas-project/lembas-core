@@ -57,6 +57,9 @@ venv.bak/
 # Example case outputs
 /examples/**/cases/
 
+# Test case outputs
+/cases/
+
 # Generated documentation
 /docs/build/
 /docs/source/api/

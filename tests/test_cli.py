@@ -201,3 +201,156 @@ def test_run_with_task_runs_pixi_task(invoke_cli: CLIInvoker, run_path: Path) ->
     # Task doesn't exist, so we get an error
     assert result.exit_code == 1
     assert "Unknown task: nonexistent" in result.stdout
+
+
+class TestCasesListCommand:
+    """Tests for `lembas cases list` command."""
+
+    def test_cases_list_empty(self, invoke_cli: CLIInvoker) -> None:
+        """With no index file, shows no cases message."""
+        result = invoke_cli("cases", "list")
+        assert result.exit_code == 0
+        assert "No cases found" in result.stdout
+
+    def test_cases_list_with_index(self, invoke_cli: CLIInvoker, run_path: Path) -> None:
+        """With an index file, shows cases in a table."""
+        import json
+
+        # Create index file
+        lembas_dir = run_path / ".lembas"
+        lembas_dir.mkdir()
+        index_file = lembas_dir / "cases.json"
+        # Full 64-char case IDs
+        case_id_1 = "abc12345" + "0" * 56
+        case_id_2 = "def67890" + "0" * 56
+        index_file.write_text(
+            json.dumps(
+                {
+                    case_id_1: "cases/alpha=1/beta=2",
+                    case_id_2: "cases/alpha=3/beta=4",
+                }
+            )
+        )
+
+        result = invoke_cli("cases", "list")
+        assert result.exit_code == 0
+        # Display shows short IDs (first 8 chars)
+        assert "abc12345" in result.stdout
+        assert "def67890" in result.stdout
+        assert "cases/alpha=1/beta=2" in result.stdout
+
+    def test_cases_list_shows_missing_status(self, invoke_cli: CLIInvoker, run_path: Path) -> None:
+        """Directories that don't exist are marked as missing."""
+        import json
+
+        lembas_dir = run_path / ".lembas"
+        lembas_dir.mkdir()
+        index_file = lembas_dir / "cases.json"
+        case_id = "abc12345" + "0" * 56
+        index_file.write_text(json.dumps({case_id: "cases/nonexistent"}))
+
+        result = invoke_cli("cases", "list")
+        assert result.exit_code == 0
+        assert "missing" in result.stdout
+
+    def test_cases_list_shows_complete_status(self, invoke_cli: CLIInvoker, run_path: Path) -> None:
+        """Directories that exist are marked as complete."""
+        import json
+
+        import toml
+
+        # Create the case directory with a case.toml
+        case_dir = run_path / "cases" / "test"
+        lembas_case_dir = case_dir / "lembas"
+        lembas_case_dir.mkdir(parents=True)
+        case_toml = lembas_case_dir / "case.toml"
+        case_toml.write_text(
+            toml.dumps({"lembas": {"case-handler": "test.Case", "inputs": {"value": 1}}})
+        )
+
+        # Create index with rich format (full 64-char case ID)
+        lembas_dir = run_path / ".lembas"
+        lembas_dir.mkdir()
+        index_file = lembas_dir / "cases.json"
+        case_id = "abc12345" + "0" * 56
+        index_file.write_text(
+            json.dumps(
+                {
+                    case_id: {
+                        "path": "cases/test",
+                        "handler": "Case",
+                        "all_paths": ["cases/test"],
+                    }
+                }
+            )
+        )
+
+        result = invoke_cli("cases", "list")
+        assert result.exit_code == 0
+        assert "complete" in result.stdout
+
+    def test_cases_list_auto_reindexes(self, invoke_cli: CLIInvoker, run_path: Path) -> None:
+        """When index is empty but case.toml files exist, auto-reindex."""
+        import toml
+
+        # Create a case directory with case.toml but NO index file
+        case_dir = run_path / "cases" / "value=1"
+        lembas_dir = case_dir / "lembas"
+        lembas_dir.mkdir(parents=True)
+
+        case_toml = lembas_dir / "case.toml"
+        case_toml.write_text(
+            toml.dumps(
+                {
+                    "lembas": {
+                        "case-handler": "test.Case",
+                        "inputs": {"value": 1},
+                    }
+                }
+            )
+        )
+
+        # No .lembas/cases.json exists
+        result = invoke_cli("cases", "list")
+        assert result.exit_code == 0
+        # Should find the case via auto-reindex
+        assert "cases/value=1" in result.stdout
+
+
+class TestCasesReindexCommand:
+    """Tests for `lembas cases reindex` command."""
+
+    def test_cases_reindex_empty(self, invoke_cli: CLIInvoker) -> None:
+        """With no cases, reindex shows 0 cases."""
+        result = invoke_cli("cases", "reindex")
+        assert result.exit_code == 0
+        assert "Found 0 cases" in result.stdout
+
+    def test_cases_reindex_finds_cases(self, invoke_cli: CLIInvoker, run_path: Path) -> None:
+        """Reindex finds case.toml files and rebuilds index."""
+        import toml
+
+        # Create a case directory with case.toml
+        case_dir = run_path / "cases" / "value=1"
+        lembas_dir = case_dir / "lembas"
+        lembas_dir.mkdir(parents=True)
+
+        case_toml = lembas_dir / "case.toml"
+        case_toml.write_text(
+            toml.dumps(
+                {
+                    "lembas": {
+                        "case-handler": "test.Case",
+                        "inputs": {"value": 1},
+                    }
+                }
+            )
+        )
+
+        result = invoke_cli("cases", "reindex")
+        assert result.exit_code == 0
+        assert "Found 1 cases" in result.stdout
+
+        # Verify index file was created
+        index_file = run_path / ".lembas" / "cases.json"
+        assert index_file.exists()

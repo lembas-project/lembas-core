@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import inspect
 import itertools
+import json
 import logging
 import types
 from collections.abc import Callable
@@ -128,25 +130,57 @@ class Case:
         return mod_prefix + cls.__qualname__
 
     @cached_property
-    def case_dir(self) -> Path | None:
-        """An optional property that can be set for a subclass.
+    def id(self) -> str:
+        """Content-addressed case identifier.
 
-        If set, the lembas case.toml file will be written in this directory.
-
+        SHA-256 of handler FQN + canonical JSON of inputs (sorted alphabetically).
+        Full 64-character hex string. Used for platform sync and deduplication.
         """
-        return None
+        canonical = json.dumps(self.inputs, sort_keys=True, separators=(",", ":"))
+        content = f"{self.fully_resolved_name}:{canonical}"
+        return hashlib.sha256(content.encode()).hexdigest()
+
+    @property
+    def short_id(self) -> str:
+        """Short form of id for display (first 8 characters)."""
+        return self.id[:8]
+
+    @classmethod
+    def _get_input_parameters_by_declaration_order(cls) -> list[InputParameter]:
+        """Get InputParameters in their declaration order.
+
+        Only includes parameters that are part of case inputs (excludes control parameters).
+        """
+        params = []
+        for value in cls.__dict__.values():
+            if isinstance(value, InputParameter) and value.include_in_inputs_dict:
+                params.append(value)
+        return params
 
     @cached_property
-    def relative_case_dir(self) -> Path | None:
+    def case_dir(self) -> Path:
+        """Working directory for this case.
+
+        Default: cases/{param1}={value1}/{param2}={value2}/{param3}={value3}/
+        Nests first 3 parameters by declaration order. Override in subclass for custom paths.
+        """
+        parts = ["cases"]
+        params = self._get_input_parameters_by_declaration_order()
+
+        for param in params[:3]:
+            name = param.path_name
+            value = param.format_for_path(getattr(self, param._name))
+            parts.append(f"{name}={value}")
+
+        return Path.cwd() / Path(*parts)
+
+    @cached_property
+    def relative_case_dir(self) -> Path:
         """Return a case directory relative to current working directory if possible.
 
         If the case directory is not a subdirectory of current working directory, the absolute
         path is returned.
-
         """
-        if self.case_dir is None:
-            return None
-
         try:
             return self.case_dir.relative_to(Path.cwd())
         except ValueError:
@@ -175,9 +209,6 @@ class Case:
 
     def _write_lembas_file(self) -> None:
         """Write a file in the case directory specifying the case handler and all input values used."""
-        if self.relative_case_dir is None:
-            return None
-
         case_summary_file = self.relative_case_dir / LEMBAS_CASE_TOML_FILENAME
         case_summary_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -193,10 +224,32 @@ class Case:
         decorated with ``@step``.
 
         """
+        self._check_index_sync()
         self.log("Running %s", self)
         self._write_lembas_file()
         for step_method in self._sorted_steps:
             step_method(self)
+
+    def _check_index_sync(self) -> None:
+        """Warn if the indexed path for this id differs from computed case_dir."""
+        from lembas.index import get_case_dir_from_index
+        from lembas.index import update_case_index
+
+        handler_name = self.fully_resolved_name.split(".")[-1]
+        indexed_path = get_case_dir_from_index(self.id)
+        if indexed_path is not None:
+            if indexed_path.resolve() != self.case_dir.resolve():
+                self.log(
+                    "Warning: case %s indexed at %s but computed case_dir is %s. "
+                    "Run 'lembas cases reindex' to update.",
+                    self.short_id,
+                    indexed_path,
+                    self.case_dir,
+                    level=logging.WARNING,
+                )
+        else:
+            # Not in index yet, add it
+            update_case_index(self.id, self.case_dir, handler=handler_name)
 
 
 class CaseList(Generic[TCase]):
