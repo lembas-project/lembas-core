@@ -1871,11 +1871,11 @@ packages:
   timestamp: 1774197446916
 - pypi: .
   name: lembas
-  version: 0.1.2.dev11+g198060e67
-  sha256: bf891868746ecfee30c13cfdca8c20a7919770a88bce12b926d02bcf089243d6
+  version: 0.3.2.dev2+g3d8ccc1a5
+  sha256: 7dea7cacf23b6ac71eabe3a5ebe7e112abf0dc0eed692990704c20c840f70535
   requires_dist:
   - pluggy<=1.6.0
-  - typer<0.27
+  - typer<0.28
   - rich
   - toml
   - tomlkit>=0.12
