@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 
@@ -26,7 +27,7 @@ class MyCase(Case):
 
 
 @pytest.fixture()
-def case(tmp_path: pytest.TempPathFactory) -> MyCase:  # type: ignore[misc]
+def case(tmp_path: Path) -> MyCase:  # type: ignore[misc]
     # Change to temp directory so case_dir is writable
     old_cwd = os.getcwd()
     os.chdir(tmp_path)
