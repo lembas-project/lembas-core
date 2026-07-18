@@ -35,6 +35,15 @@ class Results:
         return parent
 
     def __getattr__(self, item: str) -> Any:
+        # Check if the case has been run before allowing result access
+        if not self.parent.has_run:
+            from lembas.case import CaseNotRunError
+
+            raise CaseNotRunError(
+                f"Cannot access result '{item}' because the case has not been run. "
+                f"Call case.run() first."
+            )
+
         # During attribute access, we search the class for methods to which have been
         # attached a "_provides_results" tuple. If we find that, and the requested
         # result is in that tuple, we call the method (once) and cache the results in

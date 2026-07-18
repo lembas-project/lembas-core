@@ -31,6 +31,34 @@ __all__ = [
 LEMBAS_DIR = Path(".lembas")
 CASES_INDEX_FILE = LEMBAS_DIR / "cases.json"
 CASE_TOML_PATH = Path("lembas") / "case.toml"
+STATUS_FILE_PATH = Path("lembas") / "status.json"
+
+
+def _get_case_status(case_dir: Path) -> CaseStatus:
+    """Determine case status from filesystem.
+
+    A case is COMPLETE if status.json exists and has completed_at set.
+    A case is PENDING if it has case.toml or status.json but isn't complete.
+    A case is MISSING if the directory doesn't exist.
+    """
+    if not case_dir.exists():
+        return CaseStatus.MISSING
+
+    status_file = case_dir / STATUS_FILE_PATH
+    if status_file.exists():
+        try:
+            status = json.loads(status_file.read_text())
+            if status.get("completed_at"):
+                return CaseStatus.COMPLETE
+        except (json.JSONDecodeError, OSError):
+            pass
+        return CaseStatus.PENDING
+
+    case_toml = case_dir / CASE_TOML_PATH
+    if case_toml.exists():
+        return CaseStatus.PENDING
+
+    return CaseStatus.MISSING
 
 
 class CaseStatus(Enum):
@@ -266,7 +294,6 @@ def gather_case_info(
             path = entry["path"]
             handler = entry.get("handler", "")
             all_paths = entry.get("all_paths", [path])
-            path_exists = Path(path).exists()
 
             # Check for duplicates
             notes = ""
@@ -280,7 +307,7 @@ def gather_case_info(
                 if path != specified_path:
                     notes = f"expected: {specified_path}"
 
-            status = CaseStatus.COMPLETE if path_exists else CaseStatus.MISSING
+            status = _get_case_status(Path(path))
             if not handler:
                 handler = "-"
         else:

@@ -254,7 +254,7 @@ class TestCasesListCommand:
         assert "missing" in result.stdout
 
     def test_cases_list_shows_complete_status(self, invoke_cli: CLIInvoker, run_path: Path) -> None:
-        """Directories that exist are marked as complete."""
+        """Cases with completed status.json are marked as complete."""
         import json
 
         import toml
@@ -267,6 +267,10 @@ class TestCasesListCommand:
         case_toml.write_text(
             toml.dumps({"lembas": {"case-handler": "test.Case", "inputs": {"value": 1}}})
         )
+
+        # Create status.json with completed_at to mark as complete
+        status_file = lembas_case_dir / "status.json"
+        status_file.write_text(json.dumps({"completed_at": "2026-07-17T12:00:00Z", "steps": {}}))
 
         # Create index with rich format (full 64-char case ID)
         lembas_dir = run_path / ".lembas"

@@ -9,6 +9,7 @@ import types
 from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Iterator
+from datetime import UTC
 from functools import WRAPPER_ASSIGNMENTS
 from functools import cached_property
 from pathlib import Path
@@ -23,10 +24,17 @@ from lembas.logging import logger
 from lembas.param import InputParameter
 from lembas.results import Results
 
-__all__ = ["Case", "CaseList", "step"]
+__all__ = ["Case", "CaseList", "CaseNotRunError", "step"]
+
+
+class CaseNotRunError(Exception):
+    """Raised when attempting to access results before the case has been run."""
+
+    pass
 
 
 LEMBAS_CASE_TOML_FILENAME = Path("lembas", "case.toml")
+LEMBAS_STATUS_FILENAME = Path("lembas", "status.json")
 
 TCase = TypeVar("TCase", bound="Case")
 RawCaseStepMethod = Callable[[TCase], None]
@@ -145,6 +153,40 @@ class Case:
         """Short form of id for display (first 8 characters)."""
         return self.id[:8]
 
+    @property
+    def has_run(self) -> bool:
+        """Whether all steps have completed for this case.
+
+        Checks that all declared steps have entries in the status file.
+        """
+        status = self._load_status()
+        if status is None:
+            return False
+        declared_steps = set(self._steps.keys())
+        completed_steps = set(status.get("steps", {}).keys())
+        return declared_steps <= completed_steps
+
+    def _load_status(self) -> dict[str, Any] | None:
+        """Load status from lembas/status.json if it exists."""
+        status_file = self.case_dir / LEMBAS_STATUS_FILENAME
+        if not status_file.exists():
+            return None
+        return json.loads(status_file.read_text())
+
+    def _save_status(self, status: dict[str, Any]) -> None:
+        """Save status to lembas/status.json."""
+        status_file = self.case_dir / LEMBAS_STATUS_FILENAME
+        status_file.parent.mkdir(parents=True, exist_ok=True)
+        status_file.write_text(json.dumps(status, indent=2))
+
+    def _mark_step_complete(self, step_name: str) -> None:
+        """Record that a step has completed."""
+        from datetime import datetime
+
+        status = self._load_status() or {"steps": {}}
+        status["steps"][step_name] = {"completed_at": datetime.now(UTC).isoformat()}
+        self._save_status(status)
+
     @classmethod
     def _get_input_parameters_by_declaration_order(cls) -> list[InputParameter]:
         """Get InputParameters in their declaration order.
@@ -224,11 +266,25 @@ class Case:
         decorated with ``@step``.
 
         """
+        from datetime import datetime
+
         self._check_index_sync()
         self.log("Running %s", self)
         self._write_lembas_file()
+
+        # Initialize status
+        status = self._load_status() or {"steps": {}}
+        status["started_at"] = datetime.now(UTC).isoformat()
+        self._save_status(status)
+
         for step_method in self._sorted_steps:
             step_method(self)
+            self._mark_step_complete(step_method.name)
+
+        # Mark overall completion
+        status = self._load_status() or {}
+        status["completed_at"] = datetime.now(UTC).isoformat()
+        self._save_status(status)
 
     def _check_index_sync(self) -> None:
         """Warn if the indexed path for this id differs from computed case_dir."""
