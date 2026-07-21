@@ -12,6 +12,7 @@ from rich.table import Table
 
 from lembas._version import __version__
 from lembas.manifest import ensure_pixi_manifest
+from lembas.manifest import get_lembas_dir
 from lembas.manifest import get_lembas_manifest_path
 from lembas.manifest import get_pixi_manifest_path
 from lembas.manifest import is_pixi_manifest_stale
@@ -571,13 +572,19 @@ def auth_status() -> None:
 
 
 @app.command()
-def push() -> None:
+def push(
+    force: bool = typer.Option(False, "--force", "-f", help="Create new study even if one exists"),
+) -> None:
     """Push study state to the platform.
 
     Reads the local case index and status files, then registers the study
     with all cases and their current status on the configured platform server.
+
+    If a study was previously pushed, updates the existing study. Use --force
+    to create a new study instead.
     """
     import json
+    from datetime import UTC
     from datetime import datetime
     from pathlib import Path
 
@@ -686,11 +693,14 @@ def push() -> None:
         )
 
     # Push to platform
+    lembas_dir = get_lembas_dir()
+    study_state_path = lembas_dir / "study.json"
+
     with PlatformClient(config) as client:
         if not client.health_check():
             raise Abort(f"Cannot reach server at {config.server}")
 
-        # Register study with all cases
+        # Build payload
         project_id = int(config.project) if config.project else 1
         payload = {
             "name": study_name,
@@ -707,12 +717,52 @@ def push() -> None:
                 for c in case_data
             ],
         }
-        response = client.client.post("/api/studies", json=payload)
-        response.raise_for_status()
-        study = response.json()
-        study_id = study["id"]
 
-        console.print(f"  Created study: {study_id}")
+        # Check for existing study state
+        existing_study_id = None
+        if not force and study_state_path.exists():
+            try:
+                state = json.loads(study_state_path.read_text())
+                if state.get("server") == config.server:
+                    existing_study_id = state.get("id")
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        if existing_study_id:
+            # Try to update existing study
+            response = client.client.put(f"/api/studies/{existing_study_id}", json=payload)
+            if response.status_code == 404:
+                # Study deleted on server - create new one
+                console.print(
+                    "  [yellow]Study no longer exists on server, creating new one[/yellow]"
+                )
+                response = client.client.post("/api/studies", json=payload)
+                response.raise_for_status()
+                study = response.json()
+                study_id = study["id"]
+                console.print(f"  Created study: {study_id}")
+            else:
+                response.raise_for_status()
+                study = response.json()
+                study_id = study["id"]
+                console.print(f"  Updated study: {study_id}")
+        else:
+            # Create new study
+            response = client.client.post("/api/studies", json=payload)
+            response.raise_for_status()
+            study = response.json()
+            study_id = study["id"]
+            console.print(f"  Created study: {study_id}")
+
+        # Save study state locally
+        study_state = {
+            "id": study_id,
+            "server": config.server,
+            "project_id": project_id,
+            "pushed_at": datetime.now(UTC).isoformat(),
+            "name": study_name,
+        }
+        study_state_path.write_text(json.dumps(study_state, indent=2))
 
         # Update each case with status and results
         complete_count = 0
