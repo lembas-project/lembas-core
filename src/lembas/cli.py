@@ -28,6 +28,10 @@ app = typer.Typer(add_completion=False)
 cases_app = typer.Typer(help="Manage study cases")
 app.add_typer(cases_app, name="cases")
 
+# Subcommand group for auth
+auth_app = typer.Typer(help="Platform authentication")
+app.add_typer(auth_app, name="auth")
+
 
 class Okay(typer.Exit):
     """Prints an optional message to the console, before cleanly exiting."""
@@ -497,3 +501,234 @@ def cases_clean(
     console.print(
         f"[green]Cleaned index:[/green] removed {len(result.stale_entries)} stale entries."
     )
+
+
+# --- Auth Commands ---
+
+
+@auth_app.callback(invoke_without_command=True)
+def auth_callback(ctx: typer.Context) -> None:
+    """Platform authentication commands."""
+    if ctx.invoked_subcommand is None:
+        console.print(ctx.get_help())
+
+
+@auth_app.command("login")
+def auth_login(
+    token: str | None = typer.Option(None, "--token", "-t", help="API token"),
+) -> None:
+    """Authenticate with the lembas platform.
+
+    If --token is provided, stores it directly.
+    Otherwise, prompts for interactive login (not yet implemented).
+    """
+    from lembas.platform import store_token
+
+    if token:
+        store_token(token)
+        raise Okay("Token stored successfully")
+
+    raise Abort("Interactive login not yet implemented. Use --token to provide an API token.")
+
+
+@auth_app.command("logout")
+def auth_logout() -> None:
+    """Clear stored authentication credentials."""
+    from lembas.platform import clear_token
+
+    clear_token()
+    raise Okay("Logged out")
+
+
+@auth_app.command("status")
+def auth_status() -> None:
+    """Show current authentication status."""
+    from lembas.platform import PlatformClient
+    from lembas.platform import PlatformConfig
+    from lembas.platform import get_stored_token
+
+    token = get_stored_token()
+    if not token:
+        console.print("[yellow]Not logged in[/yellow]")
+        console.print("Run 'lembas auth login --token <token>' to authenticate.")
+        return
+
+    console.print("[green]Logged in[/green] (token stored)")
+
+    # Try to check server connectivity if manifest has platform config
+    try:
+        manifest = load_lembas_manifest()
+        config = PlatformConfig.from_manifest(manifest)
+        if config:
+            console.print(f"Server: {config.server}")
+            with PlatformClient(config, token) as client:
+                if client.health_check():
+                    console.print("[green]Server reachable[/green]")
+                else:
+                    console.print("[yellow]Server unreachable[/yellow]")
+    except FileNotFoundError:
+        pass
+
+
+@app.command()
+def push() -> None:
+    """Push study state to the platform.
+
+    Reads the local case index and status files, then registers the study
+    with all cases and their current status on the configured platform server.
+    """
+    import json
+    from datetime import datetime
+    from pathlib import Path
+
+    from lembas import load_local_plugins
+    from lembas.index import load_case_index
+    from lembas.platform import PlatformClient
+    from lembas.platform import PlatformConfig
+    from lembas.plugins import registry
+    from lembas.study import load_cases
+
+    if not get_lembas_manifest_path().exists():
+        raise Abort("No lembas.toml found. Run 'lembas init' first.")
+
+    manifest = load_lembas_manifest()
+    config = PlatformConfig.from_manifest(manifest)
+    if not config:
+        raise Abort("No [platform] section in lembas.toml. Add server URL to push.")
+
+    project = manifest.get("project", {})
+    study_name = project.get("name", "unnamed-study")
+    description = project.get("description")
+    tags = project.get("tags", [])
+    plugins_declared = list(manifest.get("plugins", {}).keys())
+
+    # Load local plugins and cases
+    load_local_plugins()
+    cases = load_cases()
+
+    console.print(f"Pushing study [bold]{study_name}[/bold] to {config.server}")
+    console.print(f"  {len(cases)} cases")
+
+    # Build case data with status and results
+    case_data = []
+    index = load_case_index()
+
+    for case in cases:
+        case_id = case.id
+        handler_fqn = f"{case.__class__.__module__}.{case.__class__.__name__}"
+
+        # Find case path from index
+        case_info = index.get(case_id, {})
+        case_path = case_info.get("path")
+
+        status = "pending"
+        duration_seconds = None
+        results_dict = {}
+
+        if case_path:
+            status_file = Path(case_path) / "lembas" / "status.json"
+            if status_file.exists():
+                with status_file.open() as f:
+                    status_data = json.load(f)
+                if status_data.get("completed_at"):
+                    status = "complete"
+                    # Calculate duration
+                    started = status_data.get("started_at")
+                    completed = status_data.get("completed_at")
+                    if started and completed:
+                        start_dt = datetime.fromisoformat(started)
+                        end_dt = datetime.fromisoformat(completed)
+                        duration_seconds = (end_dt - start_dt).total_seconds()
+
+                    # Try to load results by finding methods with _provides_results
+                    try:
+                        handler_cls = registry.get(case_info.get("handler", ""))
+                        reconstructed = handler_cls(**case.inputs)
+                        reconstructed.__dict__["case_dir"] = Path(case_path)
+                        reconstructed._completed_steps = set(status_data.get("steps", {}).keys())
+
+                        # Find all result methods and call them
+                        for _method_name, method_func in handler_cls.__dict__.items():
+                            provides = getattr(method_func, "_provides_results", None)
+                            if not provides:
+                                continue
+
+                            try:
+                                result_val = method_func(reconstructed)
+                                if not isinstance(result_val, tuple):
+                                    result_val = (result_val,)
+
+                                for name, val in zip(provides, result_val, strict=True):
+                                    if hasattr(val, "_asdict"):
+                                        results_dict[name] = val._asdict()
+                                    elif hasattr(val, "__dict__"):
+                                        results_dict[name] = val.__dict__
+                                    else:
+                                        results_dict[name] = val
+                            except Exception:
+                                pass
+                    except Exception as e:
+                        console.print(
+                            f"  [yellow]Could not load results for {case_id[:8]}: {e}[/yellow]"
+                        )
+            else:
+                status = "pending"
+
+        case_data.append(
+            {
+                "case_id": case_id,
+                "handler_fqn": handler_fqn,
+                "inputs": case.inputs,
+                "status": status,
+                "duration_seconds": duration_seconds,
+                "results": results_dict,
+            }
+        )
+
+    # Push to platform
+    with PlatformClient(config) as client:
+        if not client.health_check():
+            raise Abort(f"Cannot reach server at {config.server}")
+
+        # Register study with all cases
+        project_id = int(config.project) if config.project else 1
+        payload = {
+            "name": study_name,
+            "project_id": project_id,
+            "description": description,
+            "tags": tags,
+            "plugins_declared": plugins_declared,
+            "cases": [
+                {
+                    "case_id": c["case_id"],
+                    "handler_fqn": c["handler_fqn"],
+                    "inputs": c["inputs"],
+                }
+                for c in case_data
+            ],
+        }
+        response = client.client.post("/api/studies", json=payload)
+        response.raise_for_status()
+        study = response.json()
+        study_id = study["id"]
+
+        console.print(f"  Created study: {study_id}")
+
+        # Update each case with status and results
+        complete_count = 0
+        for c in case_data:
+            if c["status"] == "complete":
+                dur = c["duration_seconds"]
+                res = c["results"]
+                client.update_case_status(
+                    study_id,
+                    str(c["case_id"]),
+                    "complete",
+                    duration_seconds=float(dur) if isinstance(dur, (int, float)) else None,
+                    results=res if isinstance(res, dict) else None,
+                )
+                complete_count += 1
+
+        console.print(f"  Updated {complete_count} complete cases with results")
+
+    raise Okay(f"Pushed to {config.server}/ui/studies/{study_id}")

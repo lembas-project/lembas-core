@@ -9,7 +9,9 @@ dependencies = [
   "rich",
   "toml",
   "tomlkit >=0.12",
-  "pyyaml >=6.0"
+  "pyyaml >=6.0",
+  "httpx >=0.25",
+  "keyring >=24.0"
 ]
 description = "Lifecycle Engineering Model-Based Analysis System"
 dynamic = ["version"]
