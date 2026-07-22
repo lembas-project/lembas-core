@@ -799,7 +799,7 @@ def push(
             if skipped_count > 0:
                 console.print(f"  {skipped_count} cases already synced")
 
-    raise Okay(f"Pushed to {config.server}/ui/studies/{study_id}")
+    raise Okay(f"Pushed to {config.server}/studies/{study_id}")
 
 
 @app.command()
