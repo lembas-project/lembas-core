@@ -1,4 +1,5 @@
 [dependencies]
+pip = ">=26.1.2,<27"
 python = ">=3.11"
 pyyaml = ">=6.0"
 
