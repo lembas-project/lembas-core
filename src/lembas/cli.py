@@ -588,6 +588,7 @@ def push(
     to push only metadata.
     """
     import json
+    import logging
     from datetime import UTC
     from datetime import datetime
     from pathlib import Path
@@ -597,6 +598,10 @@ def push(
     from lembas.platform import PlatformClient
     from lembas.platform import PlatformConfig
     from lembas.plugins import registry
+
+    # Suppress verbose httpx request logging
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
     from lembas.study import load_cases
     from lembas.sync import push_case as sync_push_case
 
@@ -790,6 +795,8 @@ def push(
             total_files = 0
             total_uploaded = 0
             total_bytes = 0
+            synced_count = 0
+            skipped_count = 0
 
             for c in case_data:
                 if c["status"] == "complete":
@@ -807,14 +814,20 @@ def push(
                             total_files += stats["files"]
                             total_uploaded += stats["uploaded"]
                             total_bytes += stats["bytes"]
+                            if stats["uploaded"] > 0:
+                                synced_count += 1
+                            else:
+                                skipped_count += 1
                         except Exception as e:
                             console.print(f"  [yellow]Could not sync case {cid[:8]}: {e}[/yellow]")
 
-            if total_files > 0:
+            if total_uploaded > 0:
                 mb = total_bytes / (1024 * 1024)
                 console.print(
-                    f"  Synced {total_files} files ({total_uploaded} uploaded, {mb:.1f} MB)"
+                    f"  Uploaded {total_uploaded} files ({mb:.1f} MB) from {synced_count} cases"
                 )
+            if skipped_count > 0:
+                console.print(f"  {skipped_count} cases already synced")
 
     raise Okay(f"Pushed to {config.server}/ui/studies/{study_id}")
 
@@ -829,12 +842,17 @@ def pull(
     Use --case to pull a specific case, otherwise pulls all cases.
     """
     import json
+    import logging
     from pathlib import Path
 
     from lembas.index import load_case_index
     from lembas.platform import PlatformClient
     from lembas.platform import PlatformConfig
     from lembas.sync import pull_case as sync_pull_case
+
+    # Suppress verbose httpx request logging
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     if not get_lembas_manifest_path().exists():
         raise Abort("No lembas.toml found. Run 'lembas init' first.")
@@ -880,6 +898,8 @@ def pull(
             total_files = 0
             total_downloaded = 0
             total_bytes = 0
+            synced_count = 0
+            skipped_count = 0
 
             for cid, case_info in index.items():
                 case_path = case_info.get("path")
@@ -891,9 +911,19 @@ def pull(
                     total_downloaded += stats["downloaded"]
                     total_bytes += stats["bytes"]
                     if stats["downloaded"] > 0:
-                        console.print(f"  Pulled {cid[:8]}")
+                        synced_count += 1
+                    else:
+                        skipped_count += 1
                 except Exception as e:
                     console.print(f"  [yellow]Failed to pull {cid[:8]}: {e}[/yellow]")
 
-            mb = total_bytes / (1024 * 1024)
-            raise Okay(f"Pulled {total_downloaded} files ({mb:.1f} MB)")
+            if total_downloaded > 0:
+                mb = total_bytes / (1024 * 1024)
+                console.print(
+                    f"  Downloaded {total_downloaded} files ({mb:.1f} MB) for {synced_count} cases"
+                )
+            if skipped_count > 0:
+                console.print(f"  {skipped_count} cases already up to date")
+            if total_downloaded == 0 and skipped_count > 0:
+                raise Okay("All cases already up to date")
+            raise Okay("Pull complete")
