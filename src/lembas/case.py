@@ -33,8 +33,8 @@ class CaseNotRunError(Exception):
     pass
 
 
-LEMBAS_CASE_TOML_FILENAME = Path("lembas", "case.toml")
-LEMBAS_STATUS_FILENAME = Path("lembas", "status.json")
+LEMBAS_CASE_TOML_FILENAME = Path(".lembas", "case.toml")
+LEMBAS_STATUS_FILENAME = Path(".lembas", "status.json")
 
 TCase = TypeVar("TCase", bound="Case")
 RawCaseStepMethod = Callable[[TCase], None]
@@ -187,6 +187,34 @@ class Case:
         status["steps"][step_name] = {"completed_at": datetime.now(UTC).isoformat()}
         self._save_status(status)
 
+    def _extract_results(self) -> dict[str, Any]:
+        """Extract results from all @result-decorated methods.
+
+        Returns a dict mapping result name to value. Values are serialized:
+        - NamedTuple -> dict via _asdict()
+        - Objects with __dict__ -> their __dict__
+        - Other values -> as-is
+        """
+        results_dict: dict[str, Any] = {}
+        for _method_name, method_func in self.__class__.__dict__.items():
+            provides = getattr(method_func, "_provides_results", None)
+            if not provides:
+                continue
+            try:
+                result_val = method_func(self)
+                if not isinstance(result_val, tuple):
+                    result_val = (result_val,)
+                for name, val in zip(provides, result_val, strict=True):
+                    if hasattr(val, "_asdict"):
+                        results_dict[name] = val._asdict()
+                    elif hasattr(val, "__dict__"):
+                        results_dict[name] = val.__dict__
+                    else:
+                        results_dict[name] = val
+            except Exception as e:
+                self.log("Failed to extract result from %s: %s", _method_name, e)
+        return results_dict
+
     @classmethod
     def _get_input_parameters_by_declaration_order(cls) -> list[InputParameter]:
         """Get InputParameters in their declaration order.
@@ -293,9 +321,15 @@ class Case:
             step_method(self)
             self._mark_step_complete(step_method.name)
 
-        # Mark overall completion
+        # Mark overall completion and save results
         status = self._load_status() or {}
         status["completed_at"] = datetime.now(UTC).isoformat()
+
+        # Extract and save results
+        results_dict = self._extract_results()
+        if results_dict:
+            status["results"] = results_dict
+
         self._save_status(status)
 
     def _check_index_sync(self) -> None:

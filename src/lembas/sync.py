@@ -36,6 +36,8 @@ def hash_file(path: Path) -> str:
 def build_manifest(case_dir: Path) -> dict[str, str]:
     """Build a manifest of all files in a case directory.
 
+    Skips .lembas internal directory (status, metadata).
+
     Returns:
         Dict mapping relative path → SHA-256 hash
     """
@@ -43,6 +45,9 @@ def build_manifest(case_dir: Path) -> dict[str, str]:
     for path in case_dir.rglob("*"):
         if path.is_file():
             rel_path = str(path.relative_to(case_dir))
+            # Skip internal .lembas directory
+            if rel_path.startswith(".lembas/") or rel_path.startswith(".lembas\\"):
+                continue
             manifest[rel_path] = hash_file(path)
     return manifest
 

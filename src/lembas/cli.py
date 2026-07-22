@@ -597,7 +597,6 @@ def push(
     from lembas.index import load_case_index
     from lembas.platform import PlatformClient
     from lembas.platform import PlatformConfig
-    from lembas.plugins import registry
 
     # Suppress verbose httpx request logging
     logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -643,7 +642,7 @@ def push(
         results_dict = {}
 
         if case_path:
-            status_file = Path(case_path) / "lembas" / "status.json"
+            status_file = Path(case_path) / ".lembas" / "status.json"
             if status_file.exists():
                 with status_file.open() as f:
                     status_data = json.load(f)
@@ -657,37 +656,8 @@ def push(
                         end_dt = datetime.fromisoformat(completed)
                         duration_seconds = (end_dt - start_dt).total_seconds()
 
-                    # Try to load results by finding methods with _provides_results
-                    try:
-                        handler_cls = registry.get(case_info.get("handler", ""))
-                        reconstructed = handler_cls(**case.inputs)
-                        reconstructed.__dict__["case_dir"] = Path(case_path)
-                        reconstructed._completed_steps = set(status_data.get("steps", {}).keys())
-
-                        # Find all result methods and call them
-                        for _method_name, method_func in handler_cls.__dict__.items():
-                            provides = getattr(method_func, "_provides_results", None)
-                            if not provides:
-                                continue
-
-                            try:
-                                result_val = method_func(reconstructed)
-                                if not isinstance(result_val, tuple):
-                                    result_val = (result_val,)
-
-                                for name, val in zip(provides, result_val, strict=True):
-                                    if hasattr(val, "_asdict"):
-                                        results_dict[name] = val._asdict()
-                                    elif hasattr(val, "__dict__"):
-                                        results_dict[name] = val.__dict__
-                                    else:
-                                        results_dict[name] = val
-                            except Exception:
-                                pass
-                    except Exception as e:
-                        console.print(
-                            f"  [yellow]Could not load results for {case_id[:8]}: {e}[/yellow]"
-                        )
+                    # Load results from status.json (saved during run)
+                    results_dict = status_data.get("results", {})
             else:
                 status = "pending"
 
