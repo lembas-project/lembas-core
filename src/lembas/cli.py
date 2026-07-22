@@ -574,6 +574,7 @@ def auth_status() -> None:
 @app.command()
 def push(
     force: bool = typer.Option(False, "--force", "-f", help="Create new study even if one exists"),
+    data: bool = typer.Option(True, "--data/--no-data", help="Push case data (not just metadata)"),
 ) -> None:
     """Push study state to the platform.
 
@@ -582,6 +583,9 @@ def push(
 
     If a study was previously pushed, updates the existing study. Use --force
     to create a new study instead.
+
+    By default, also pushes case data (output files) via DVC. Use --no-data
+    to push only metadata.
     """
     import json
     from datetime import UTC
@@ -589,6 +593,9 @@ def push(
     from pathlib import Path
 
     from lembas import load_local_plugins
+    from lembas.dvc import configure_remote
+    from lembas.dvc import push_all as dvc_push_all
+    from lembas.dvc import track_case
     from lembas.index import load_case_index
     from lembas.platform import PlatformClient
     from lembas.platform import PlatformConfig
@@ -778,4 +785,117 @@ def push(
 
         console.print(f"  Updated {complete_count} complete cases with results")
 
+        # Push case data via DVC
+        if data and complete_count > 0:
+            console.print("  Syncing case data...")
+
+            # Configure DVC remote to point to platform storage
+            configure_remote(config.server, study_id)
+
+            # Track each completed case
+            tracked_count = 0
+            for c in case_data:
+                if c["status"] == "complete":
+                    cid = str(c["case_id"])
+                    case_info = index.get(cid, {})
+                    case_path = case_info.get("path")
+                    if case_path and Path(case_path).exists():
+                        try:
+                            track_case(cid)
+                            tracked_count += 1
+                        except Exception as e:
+                            console.print(f"  [yellow]Could not track case {cid[:8]}: {e}[/yellow]")
+
+            if tracked_count > 0:
+                console.print(f"  Tracked {tracked_count} cases")
+                # Push all tracked data to remote
+                try:
+                    dvc_push_all()
+                    console.print("  Pushed case data to remote")
+                except Exception as e:
+                    console.print(f"  [yellow]DVC push failed: {e}[/yellow]")
+
     raise Okay(f"Pushed to {config.server}/ui/studies/{study_id}")
+
+
+@app.command()
+def pull(
+    case_id: str | None = typer.Option(None, "--case", "-c", help="Pull a specific case by ID"),
+    all_cases: bool = typer.Option(False, "--all", "-a", help="Pull all cases"),
+) -> None:
+    """Pull case data from the platform.
+
+    Downloads case output files from the platform storage. By default, pulls
+    only the cases that have .dvc files but missing local data.
+
+    Use --case to pull a specific case, or --all to pull everything.
+    """
+    import json
+
+    from lembas.dvc import configure_remote
+    from lembas.dvc import is_case_cached
+    from lembas.dvc import list_tracked_cases
+    from lembas.dvc import pull_all as dvc_pull_all
+    from lembas.dvc import pull_case
+    from lembas.platform import PlatformConfig
+
+    if not get_lembas_manifest_path().exists():
+        raise Abort("No lembas.toml found. Run 'lembas init' first.")
+
+    manifest = load_lembas_manifest()
+    config = PlatformConfig.from_manifest(manifest)
+    if not config:
+        raise Abort("No [platform] section in lembas.toml.")
+
+    # Get study ID from local state
+    lembas_dir = get_lembas_dir()
+    study_state_path = lembas_dir / "study.json"
+
+    if not study_state_path.exists():
+        raise Abort("No local study state. Run 'lembas push' first or clone from platform.")
+
+    state = json.loads(study_state_path.read_text())
+    study_id = state.get("id")
+    if not study_id:
+        raise Abort("Invalid study state - missing ID.")
+
+    # Configure DVC remote
+    configure_remote(config.server, study_id)
+
+    if case_id:
+        # Pull specific case
+        console.print(f"Pulling case {case_id[:8]}...")
+        try:
+            pull_case(case_id)
+            raise Okay(f"Pulled case {case_id[:8]}")
+        except FileNotFoundError as e:
+            raise Abort(f"Case {case_id[:8]} not tracked (no .dvc file)") from e
+        except Exception as e:
+            raise Abort(f"Pull failed: {e}") from e
+
+    elif all_cases:
+        # Pull everything
+        console.print("Pulling all cases...")
+        try:
+            dvc_pull_all()
+            raise Okay("Pulled all cases")
+        except Exception as e:
+            raise Abort(f"Pull failed: {e}") from e
+
+    else:
+        # Pull only missing cases
+        tracked = list_tracked_cases()
+        missing = [c for c in tracked if not is_case_cached(c)]
+
+        if not missing:
+            raise Okay("All tracked cases are already local")
+
+        console.print(f"Pulling {len(missing)} missing cases...")
+        for cid in missing:
+            try:
+                pull_case(cid)
+                console.print(f"  Pulled {cid[:8]}")
+            except Exception as e:
+                console.print(f"  [yellow]Failed to pull {cid[:8]}: {e}[/yellow]")
+
+        raise Okay(f"Pulled {len(missing)} cases")
