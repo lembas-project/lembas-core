@@ -40,38 +40,55 @@ def configure_remote(
     server_url: str,
     study_id: str,
     *,
-    access_key_id: str | None = None,
-    secret_access_key: str | None = None,
+    token: str | None = None,
     project_root: Path | None = None,
 ) -> None:
     """Configure DVC remote to point to platform storage.
 
+    Uses DVC's HTTP remote type, pointing to our /api/storage/blobs/ endpoint.
+    The server handles auth and either proxies the request (local dev) or
+    redirects to a presigned S3 URL (production).
+
     Args:
         server_url: Platform server URL (e.g. https://lembas.fly.dev)
-        study_id: Study ID for scoping storage
-        access_key_id: S3 access key (optional, can use env vars)
-        secret_access_key: S3 secret key (optional, can use env vars)
+        study_id: Study ID (used for scoping, included in config for reference)
+        token: Auth token for platform API (optional, uses stored token if not provided)
         project_root: Project root directory
     """
     init_dvc(project_root)
 
-    # Remote URL points to platform's S3-compatible storage
-    # Format: s3://{bucket}/studies/{study_id}
-    remote_url = f"{server_url}/storage/{study_id}"
+    # Use HTTP remote pointing to our blob storage API
+    # DVC will use {url}/{hash} for each file
+    remote_url = f"{server_url}/api/storage/blobs"
 
     _run_dvc(["remote", "add", "-f", "platform", remote_url], project_root)
     _run_dvc(["remote", "default", "platform"], project_root)
 
-    if access_key_id:
+    # Configure as HTTP remote (not S3)
+    _run_dvc(["remote", "modify", "platform", "method", "PUT"], project_root)
+
+    # Add auth header if token provided
+    if token:
         _run_dvc(
-            ["remote", "modify", "platform", "access_key_id", access_key_id],
+            ["remote", "modify", "platform", "auth", "custom"],
             project_root,
         )
-    if secret_access_key:
         _run_dvc(
-            ["remote", "modify", "platform", "secret_access_key", secret_access_key],
+            [
+                "remote",
+                "modify",
+                "platform",
+                "custom_auth_header",
+                f"Authorization: Bearer {token}",
+            ],
             project_root,
         )
+
+    # Store study_id in config for reference (custom field, DVC ignores it)
+    _run_dvc(
+        ["remote", "modify", "platform", "study_id", study_id],
+        project_root,
+    )
 
 
 def track_case(case_id: str, project_root: Path | None = None) -> Path:

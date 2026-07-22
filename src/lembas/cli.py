@@ -790,7 +790,10 @@ def push(
             console.print("  Syncing case data...")
 
             # Configure DVC remote to point to platform storage
-            configure_remote(config.server, study_id)
+            from lembas.platform import get_stored_token
+
+            token = get_stored_token()
+            configure_remote(config.server, study_id, token=token)
 
             # Track each completed case
             tracked_count = 0
@@ -860,7 +863,10 @@ def pull(
         raise Abort("Invalid study state - missing ID.")
 
     # Configure DVC remote
-    configure_remote(config.server, study_id)
+    from lembas.platform import get_stored_token
+
+    token = get_stored_token()
+    configure_remote(config.server, study_id, token=token)
 
     if case_id:
         # Pull specific case
