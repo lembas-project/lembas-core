@@ -24,7 +24,6 @@ class PlatformConfig:
     """Configuration for platform connection."""
 
     server: str
-    project: str | None = None
 
     @classmethod
     def from_manifest(cls, manifest: dict[str, Any]) -> PlatformConfig | None:
@@ -35,7 +34,7 @@ class PlatformConfig:
         server = platform.get("server")
         if not server:
             return None
-        return cls(server=server, project=platform.get("project"))
+        return cls(server=server)
 
 
 def get_stored_token() -> str | None:
@@ -118,7 +117,6 @@ class PlatformClient:
     def register_study(
         self,
         name: str,
-        project_id: int,
         cases: list[Case],
         *,
         description: str | None = None,
@@ -128,7 +126,6 @@ class PlatformClient:
         """Register a study with its cases on the platform."""
         payload = {
             "name": name,
-            "project_id": project_id,
             "description": description,
             "tags": tags or [],
             "plugins_declared": plugins_declared or [],

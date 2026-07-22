@@ -701,10 +701,8 @@ def push(
             raise Abort(f"Cannot reach server at {config.server}")
 
         # Build payload
-        project_id = int(config.project) if config.project else 1
         payload = {
             "name": study_name,
-            "project_id": project_id,
             "description": description,
             "tags": tags,
             "plugins_declared": plugins_declared,
@@ -758,7 +756,6 @@ def push(
         study_state = {
             "id": study_id,
             "server": config.server,
-            "project_id": project_id,
             "pushed_at": datetime.now(UTC).isoformat(),
             "name": study_name,
         }
