@@ -51,8 +51,10 @@ class MyCase(Case):
 
 
 @pytest.fixture()
-def case() -> MyCase:
-    return MyCase(my_param=3.0, required_param=1.0)
+def case(tmp_path: Path) -> MyCase:
+    c = MyCase(my_param=3.0, required_param=1.0)
+    c.case_dir = tmp_path / "case"
+    return c
 
 
 def test_case_parameter_default(case: MyCase) -> None:
@@ -161,8 +163,8 @@ def test_case_lembas_toml(case: MyCase, tmp_path: Path) -> None:
     case.required_param = 4.0
     assert case.case_dir == tmp_path
     case._write_lembas_file()
-    assert (tmp_path / "lembas" / "case.toml").exists()
-    with (tmp_path / "lembas" / "case.toml").open("r") as fp:
+    assert (tmp_path / ".lembas" / "case.toml").exists()
+    with (tmp_path / ".lembas" / "case.toml").open("r") as fp:
         data = toml.load(fp)
     assert data == {"lembas": {"inputs": case.inputs, "case-handler": case.fully_resolved_name}}
 

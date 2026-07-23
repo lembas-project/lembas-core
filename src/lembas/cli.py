@@ -597,6 +597,8 @@ def push(
     from lembas.index import load_case_index
     from lembas.platform import PlatformClient
     from lembas.platform import PlatformConfig
+    from lembas.schema import extract_handler_schema
+    from lembas.schema import get_git_ref
 
     # Suppress verbose httpx request logging
     logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -624,6 +626,23 @@ def push(
 
     console.print(f"Pushing study [bold]{study_name}[/bold] to {config.server}")
     console.print(f"  {len(cases)} cases")
+
+    # Extract handler schemas
+    handler_classes: dict[str, type] = {}
+    for case in cases:
+        handler_name = case.__class__.__name__
+        if handler_name not in handler_classes:
+            handler_classes[handler_name] = case.__class__
+
+    git_source = get_git_ref()
+    handler_schemas = []
+    for handler_cls in handler_classes.values():
+        schema = extract_handler_schema(
+            handler_cls,
+            base_url=f"{config.server}/schemas",
+            source=git_source,
+        )
+        handler_schemas.append(schema)
 
     # Build case data with status and results
     case_data = []
@@ -686,6 +705,14 @@ def push(
             "description": description,
             "tags": tags,
             "plugins_declared": plugins_declared,
+            "handlers": [
+                {
+                    "name": s["title"],
+                    "schema_fingerprint": s["x-lembas-fingerprint"],
+                    "schema": s,
+                }
+                for s in handler_schemas
+            ],
             "cases": [
                 {
                     "case_id": c["case_id"],
