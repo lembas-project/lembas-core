@@ -23,18 +23,71 @@ SERVICE_NAME = "lembas"
 class PlatformConfig:
     """Configuration for platform connection."""
 
+    name: str
     server: str
 
     @classmethod
-    def from_manifest(cls, manifest: dict[str, Any]) -> PlatformConfig | None:
-        """Extract platform config from lembas.toml manifest."""
+    def from_manifest(
+        cls, manifest: dict[str, Any], target: str | None = None
+    ) -> PlatformConfig | None:
+        """Extract platform config from lembas.toml manifest.
+
+        Format:
+            [[platform]]
+            name = "default"
+            url = "https://lembas.example.com"
+
+            [[platform]]
+            name = "staging"
+            url = "https://staging.lembas.example.com"
+
+        Args:
+            manifest: The parsed lembas.toml content.
+            target: Name of the platform target to use. If None, uses the first
+                one (default). Can also be a URL for ad-hoc targets.
+
+        Returns:
+            PlatformConfig or None if no platform is configured.
+        """
         platform = manifest.get("platform")
         if not platform:
             return None
-        server = platform.get("server")
-        if not server:
+
+        # Check if target is a URL (ad-hoc platform)
+        if target and (target.startswith("http://") or target.startswith("https://")):
+            return cls(name="adhoc", server=target)
+
+        if not isinstance(platform, list) or not platform:
             return None
-        return cls(server=server)
+
+        if target:
+            # Find target by name
+            for p in platform:
+                if p.get("name") == target:
+                    return cls(name=p["name"], server=p.get("url", ""))
+            # Target not found
+            available = [p.get("name") for p in platform if p.get("name")]
+            raise ValueError(f"Platform target '{target}' not found. Available: {available}")
+
+        # Use first target as default
+        first = platform[0]
+        return cls(
+            name=first.get("name", "default"),
+            server=first.get("url", ""),
+        )
+
+    @classmethod
+    def list_targets(cls, manifest: dict[str, Any]) -> list[PlatformConfig]:
+        """List all available platform targets from manifest."""
+        platform = manifest.get("platform")
+        if not platform or not isinstance(platform, list):
+            return []
+
+        return [
+            cls(name=p.get("name", f"target-{i}"), server=p.get("url", ""))
+            for i, p in enumerate(platform)
+            if p.get("url")
+        ]
 
 
 def get_stored_token() -> str | None:

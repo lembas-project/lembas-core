@@ -572,7 +572,63 @@ def auth_status() -> None:
 
 
 @app.command()
+def platforms() -> None:
+    """List configured platform targets.
+
+    Shows all platform targets defined in lembas.toml under [[platform]].
+    The first target is the default when no target is specified.
+    """
+    from lembas.platform import PlatformClient
+    from lembas.platform import PlatformConfig
+    from lembas.platform import get_stored_token
+
+    if not get_lembas_manifest_path().exists():
+        raise Abort("No lembas.toml found. Run 'lembas init' first.")
+
+    manifest = load_lembas_manifest()
+    targets = PlatformConfig.list_targets(manifest)
+
+    if not targets:
+        console.print("[yellow]No platform targets configured[/yellow]")
+        console.print("Add a [[platform]] section to lembas.toml:")
+        console.print()
+        console.print("  [[platform]]")
+        console.print('  name = "default"')
+        console.print('  url = "https://lembas.example.com"')
+        return
+
+    token = get_stored_token()
+
+    table = Table(title="Platform Targets")
+    table.add_column("Name", style="cyan")
+    table.add_column("URL")
+    table.add_column("Status")
+    table.add_column("Default")
+
+    for i, target in enumerate(targets):
+        # Check connectivity
+        status = "[dim]unknown[/dim]"
+        if token:
+            try:
+                with PlatformClient(target, token) as client:
+                    if client.health_check():
+                        status = "[green]reachable[/green]"
+                    else:
+                        status = "[yellow]unreachable[/yellow]"
+            except Exception:
+                status = "[red]error[/red]"
+
+        default = "[green]✓[/green]" if i == 0 else ""
+        table.add_row(target.name, target.server, status, default)
+
+    console.print(table)
+
+
+@app.command()
 def push(
+    target: str = typer.Argument(
+        None, help="Platform target name or URL (default: first in [[platform]])"
+    ),
     force: bool = typer.Option(False, "--force", "-f", help="Create new study even if one exists"),
     data: bool = typer.Option(True, "--data/--no-data", help="Push case data (not just metadata)"),
 ) -> None:
@@ -580,6 +636,11 @@ def push(
 
     Reads the local case index and status files, then registers the study
     with all cases and their current status on the configured platform server.
+
+    TARGET can be:
+      - A platform name from [[platform]] in lembas.toml (e.g., "staging")
+      - A direct URL (e.g., "https://lembas.example.com")
+      - Omitted to use the first/default platform
 
     If a study was previously pushed, updates the existing study. Use --force
     to create a new study instead.
@@ -610,7 +671,10 @@ def push(
         raise Abort("No lembas.toml found. Run 'lembas init' first.")
 
     manifest = load_lembas_manifest()
-    config = PlatformConfig.from_manifest(manifest)
+    try:
+        config = PlatformConfig.from_manifest(manifest, target)
+    except ValueError as e:
+        raise Abort(str(e)) from None
     if not config:
         raise Abort("No [platform] section in lembas.toml. Add server URL to push.")
 
@@ -831,12 +895,20 @@ def push(
 
 @app.command()
 def pull(
+    target: str = typer.Argument(
+        None, help="Platform target name or URL (default: first in [[platform]])"
+    ),
     case_id: str | None = typer.Option(None, "--case", "-c", help="Pull a specific case by ID"),
 ) -> None:
     """Pull case data from the platform.
 
     Downloads case output files from the platform storage.
     Use --case to pull a specific case, otherwise pulls all cases.
+
+    TARGET can be:
+      - A platform name from [[platform]] in lembas.toml (e.g., "staging")
+      - A direct URL (e.g., "https://lembas.example.com")
+      - Omitted to use the first/default platform
     """
     import json
     import logging
@@ -855,7 +927,10 @@ def pull(
         raise Abort("No lembas.toml found. Run 'lembas init' first.")
 
     manifest = load_lembas_manifest()
-    config = PlatformConfig.from_manifest(manifest)
+    try:
+        config = PlatformConfig.from_manifest(manifest, target)
+    except ValueError as e:
+        raise Abort(str(e)) from None
     if not config:
         raise Abort("No [platform] section in lembas.toml.")
 
