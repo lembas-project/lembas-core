@@ -130,23 +130,18 @@ def extract_result_schema(case_cls: type[Case]) -> dict[str, Any]:
 def extract_steps_schema(case_cls: type[Case]) -> list[dict[str, Any]]:
     """Extract step definitions for a Case handler.
 
-    Returns a list of step objects with name, requires, condition info, and order.
-    Steps are returned in definition order, which is the implicit execution order
-    when no explicit `requires=` dependencies are specified.
+    Returns a list of step objects with name, requires, and condition info.
     """
     from lembas.case import CaseStep
 
     steps: list[dict[str, Any]] = []
-    order = 0
 
     for name, value in case_cls.__dict__.items():
         if isinstance(value, CaseStep):
             step_info: dict[str, Any] = {
                 "name": name,
                 "requires": value.requires if value.requires else [],
-                "order": order,
             }
-            order += 1
 
             # Get docstring if available
             if value._func.__doc__:
