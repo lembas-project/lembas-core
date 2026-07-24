@@ -127,6 +127,43 @@ def extract_result_schema(case_cls: type[Case]) -> dict[str, Any]:
     }
 
 
+def extract_steps_schema(case_cls: type[Case]) -> list[dict[str, Any]]:
+    """Extract step definitions for a Case handler.
+
+    Returns a list of step objects with name, requires, and condition info.
+    """
+    from lembas.case import CaseStep
+
+    steps: list[dict[str, Any]] = []
+
+    for name, value in case_cls.__dict__.items():
+        if isinstance(value, CaseStep):
+            step_info: dict[str, Any] = {
+                "name": name,
+                "requires": value.requires if value.requires else [],
+            }
+
+            # Get docstring if available
+            if value._func.__doc__:
+                step_info["description"] = value._func.__doc__.strip().split("\n")[0]
+
+            # Check if there's a condition (we can't serialize lambdas, but we can flag it)
+            # The condition is stored as a callable, check if it's not the default "always true"
+            if value._condition is not None:
+                # Check if it's not the default lambda that always returns True
+                # We do this by checking if the condition function is different from the default
+                try:
+                    # Try to detect if there's a real condition by checking if it's a closure
+                    if hasattr(value._condition, "__closure__") and value._condition.__closure__:
+                        step_info["has_condition"] = True
+                except Exception:
+                    pass
+
+            steps.append(step_info)
+
+    return steps
+
+
 def extract_handler_schema(
     case_cls: type[Case],
     *,
@@ -141,10 +178,11 @@ def extract_handler_schema(
         source: Source metadata (git_ref, plugin version, etc.)
 
     Returns:
-        Complete JSON Schema with inputs, results, and metadata.
+        Complete JSON Schema with inputs, results, steps, and metadata.
     """
     inputs_schema = extract_input_schema(case_cls)
     results_schema = extract_result_schema(case_cls)
+    steps_schema = extract_steps_schema(case_cls)
 
     # Build the schema without fingerprint first
     handler_name = case_cls.__name__
@@ -158,6 +196,7 @@ def extract_handler_schema(
         "title": handler_name,
         "inputs": inputs_schema,
         "results": results_schema,
+        "steps": steps_schema,
     }
 
     if description:
@@ -182,6 +221,7 @@ def extract_handler_schema(
 
     full_schema["inputs"] = inputs_schema
     full_schema["results"] = results_schema
+    full_schema["steps"] = steps_schema
 
     return full_schema
 
@@ -192,11 +232,12 @@ def compute_fingerprint(schema: dict[str, Any]) -> str:
     Uses SHA-256 of canonical JSON (sorted keys, no whitespace).
     Returns first 16 hex characters.
     """
-    # Only hash the semantic content (inputs + results), not metadata
+    # Only hash the semantic content (inputs + results + steps), not metadata
     content = {
         "title": schema.get("title"),
         "inputs": schema.get("inputs"),
         "results": schema.get("results"),
+        "steps": schema.get("steps"),
     }
     canonical = json.dumps(content, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode()).hexdigest()[:16]
