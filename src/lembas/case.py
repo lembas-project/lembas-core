@@ -5,10 +5,12 @@ import inspect
 import itertools
 import json
 import logging
+import os
 import types
 from collections.abc import Callable
 from collections.abc import Iterable
 from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC
 from functools import WRAPPER_ASSIGNMENTS
 from functools import cached_property
@@ -255,6 +257,16 @@ class Case:
             return self.case_dir.relative_to(Path.cwd())
         except ValueError:
             return self.case_dir
+
+    @contextmanager
+    def in_case_dir(self) -> Iterator[None]:
+        """Context manager to temporarily change to the case directory."""
+        original = os.getcwd()
+        try:
+            os.chdir(self.case_dir)
+            yield
+        finally:
+            os.chdir(original)
 
     @property
     def inputs(self) -> dict[str, Any]:
