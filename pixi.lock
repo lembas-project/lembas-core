@@ -1871,8 +1871,8 @@ packages:
   timestamp: 1774197446916
 - pypi: .
   name: lembas
-  version: 0.3.2.dev2+g3d8ccc1a5
-  sha256: 7dea7cacf23b6ac71eabe3a5ebe7e112abf0dc0eed692990704c20c840f70535
+  version: 0.5.2.dev5+g5a4ca1a5c
+  sha256: 8cbf1447878b5c7e7b810cbfd4bca3b2c3f99495ca626db233da65ed17c09a6c
   requires_dist:
   - pluggy<=1.6.0
   - typer<0.28
@@ -1893,7 +1893,7 @@ packages:
   - sphinx-autodoc-typehints ; extra == 'docs'
   - toml ; extra == 'docs'
   - planingfsi ; extra == 'examples'
-  - pandas<=3.0.3 ; extra == 'examples'
+  - pandas<=3.0.5 ; extra == 'examples'
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/lerc-4.1.0-hdb68285_0.conda

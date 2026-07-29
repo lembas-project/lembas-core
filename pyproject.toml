@@ -36,7 +36,7 @@ docs = [
 ]
 examples = [
   "planingfsi",
-  "pandas <=3.0.3"
+  "pandas <=3.0.5"
 ]
 
 [project.scripts]
