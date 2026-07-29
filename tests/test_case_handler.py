@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -177,6 +178,18 @@ def test_case_relative_case_dir_is_relative(case: MyCase, tmp_path: Path) -> Non
     """If the case_dir is relative to CWD, the relative_case_dir is relative."""
     case.case_dir = Path.cwd() / "some/relative-path"
     assert case.relative_case_dir == Path("some/relative-path")
+
+
+def test_in_case_dir_changes_and_restores_cwd(case: MyCase, tmp_path: Path) -> None:
+    """in_case_dir temporarily changes to case_dir and restores on exit."""
+    case.case_dir = tmp_path / "case"
+    case.case_dir.mkdir(parents=True)
+    original_cwd = os.getcwd()
+
+    with case.in_case_dir():
+        assert os.getcwd() == str(case.case_dir)
+
+    assert os.getcwd() == original_cwd
 
 
 @pytest.fixture()
