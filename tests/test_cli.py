@@ -261,7 +261,7 @@ class TestCasesListCommand:
 
         # Create the case directory with a case.toml
         case_dir = run_path / "cases" / "test"
-        lembas_case_dir = case_dir / "lembas"
+        lembas_case_dir = case_dir / ".lembas"
         lembas_case_dir.mkdir(parents=True)
         case_toml = lembas_case_dir / "case.toml"
         case_toml.write_text(
@@ -299,7 +299,7 @@ class TestCasesListCommand:
 
         # Create a case directory with case.toml but NO index file
         case_dir = run_path / "cases" / "value=1"
-        lembas_dir = case_dir / "lembas"
+        lembas_dir = case_dir / ".lembas"
         lembas_dir.mkdir(parents=True)
 
         case_toml = lembas_dir / "case.toml"
@@ -336,7 +336,7 @@ class TestCasesReindexCommand:
 
         # Create a case directory with case.toml
         case_dir = run_path / "cases" / "value=1"
-        lembas_dir = case_dir / "lembas"
+        lembas_dir = case_dir / ".lembas"
         lembas_dir.mkdir(parents=True)
 
         case_toml = lembas_dir / "case.toml"

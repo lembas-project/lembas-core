@@ -30,8 +30,8 @@ __all__ = [
 
 LEMBAS_DIR = Path(".lembas")
 CASES_INDEX_FILE = LEMBAS_DIR / "cases.json"
-CASE_TOML_PATH = Path("lembas") / "case.toml"
-STATUS_FILE_PATH = Path("lembas") / "status.json"
+CASE_TOML_PATH = Path(".lembas") / "case.toml"
+STATUS_FILE_PATH = Path(".lembas") / "status.json"
 
 
 def _get_case_status(case_dir: Path) -> CaseStatus:
