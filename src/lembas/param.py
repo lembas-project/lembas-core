@@ -127,3 +127,31 @@ class InputParameter:
         if isinstance(value, float):
             return format(value, ".6g")
         return str(value)
+
+    def to_json_schema(self) -> dict[str, Any]:
+        """Convert this parameter to a JSON Schema property definition."""
+        type_map = {
+            str: "string",
+            int: "integer",
+            float: "number",
+            bool: "boolean",
+            list: "array",
+            dict: "object",
+        }
+        schema: dict[str, Any] = {"type": type_map.get(self._type, "string")}
+
+        if self._min_value is not None:
+            schema["minimum"] = self._min_value
+        if self._max_value is not None:
+            schema["maximum"] = self._max_value
+        if self._default != _NoDefault:
+            schema["default"] = self._default
+        if self._short_name:
+            schema["x-lembas-short-name"] = self._short_name
+
+        return schema
+
+    @property
+    def is_required(self) -> bool:
+        """Whether this parameter is required (has no default)."""
+        return self._default == _NoDefault

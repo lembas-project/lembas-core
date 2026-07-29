@@ -51,6 +51,10 @@ class CaseHandlerRegistry:
         """Clear the case handler registry."""
         self._registry.clear()
 
+    def get_all(self) -> dict[str, type[Case]]:
+        """Return all registered case handlers."""
+        return dict(self._registry)
+
 
 registry = CaseHandlerRegistry()
 

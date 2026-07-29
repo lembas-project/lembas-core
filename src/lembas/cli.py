@@ -28,6 +28,10 @@ app = typer.Typer(add_completion=False)
 cases_app = typer.Typer(help="Manage study cases")
 app.add_typer(cases_app, name="cases")
 
+# Subcommand group for plugin/handler management
+handlers_app = typer.Typer(help="Manage case handlers")
+app.add_typer(handlers_app, name="handlers")
+
 
 class Okay(typer.Exit):
     """Prints an optional message to the console, before cleanly exiting."""
@@ -497,3 +501,104 @@ def cases_clean(
     console.print(
         f"[green]Cleaned index:[/green] removed {len(result.stale_entries)} stale entries."
     )
+
+
+# =============================================================================
+# Handlers commands
+# =============================================================================
+
+
+@handlers_app.command("list")
+def handlers_list(
+    plugin: Path | None = typer.Option(  # noqa: B008
+        None, help="Path to plugin file to load handlers from"
+    ),
+) -> None:
+    """List available case handlers."""
+    if plugin:
+        console.print(f"Loading handlers from {plugin}")
+        load_plugins_from_file(plugin)
+
+    handlers = registry.get_all()
+    if not handlers:
+        console.print("No handlers registered.")
+        return
+
+    table = Table(title="Available Case Handlers")
+    table.add_column("Handler", style="cyan")
+    table.add_column("Description")
+
+    for name, cls in sorted(handlers.items()):
+        desc = ""
+        if cls.__doc__:
+            desc = cls.__doc__.strip().split("\n")[0]
+        table.add_row(name, desc)
+
+    console.print(table)
+
+
+@handlers_app.command("show")
+def handlers_show(
+    handler_name: str = typer.Argument(help="Name of the handler to show"),  # noqa: B008
+    plugin: Path | None = typer.Option(  # noqa: B008
+        None, help="Path to plugin file to load handlers from"
+    ),
+    as_json_schema: bool = typer.Option(  # noqa: B008
+        False, "--as-json-schema", help="Output as JSON Schema"
+    ),
+) -> None:
+    """Show details of a case handler."""
+    import json
+
+    from lembas.schema import extract_handler_schema
+
+    if plugin:
+        console.print(f"Loading handlers from {plugin}")
+        load_plugins_from_file(plugin)
+
+    try:
+        handler_cls = registry.get(handler_name)
+    except CaseHandlerNotFound as err:
+        raise Abort(
+            f"Handler '{handler_name}' not found. Use 'lembas handlers list' to see available handlers."
+        ) from err
+
+    if as_json_schema:
+        schema = extract_handler_schema(handler_cls)
+        console.print(json.dumps(schema, indent=2))
+        return
+
+    # Default: show handler info in a readable format
+    from lembas.case import CaseStep
+    from lembas.param import InputParameter
+
+    console.print(f"[bold]{handler_name}[/bold]")
+    if handler_cls.__doc__:
+        console.print(f"  {handler_cls.__doc__.strip().split(chr(10))[0]}")
+    console.print()
+
+    # Show inputs
+    console.print("[bold]Inputs:[/bold]")
+    for name, value in handler_cls.__dict__.items():
+        if isinstance(value, InputParameter):
+            type_name = value._type.__name__ if value._type else "any"
+            bounds = ""
+            if value._min_value is not None or value._max_value is not None:
+                bounds = f" [{value._min_value}, {value._max_value}]"
+            console.print(f"  {name}: {type_name}{bounds}")
+    console.print()
+
+    # Show steps
+    console.print("[bold]Steps:[/bold]")
+    for name, value in handler_cls.__dict__.items():
+        if isinstance(value, CaseStep):
+            requires = f" (requires: {', '.join(value.requires)})" if value.requires else ""
+            console.print(f"  {name}{requires}")
+    console.print()
+
+    # Show results
+    console.print("[bold]Results:[/bold]")
+    for _method_name, method_func in handler_cls.__dict__.items():
+        provides = getattr(method_func, "_provides_results", None)
+        if provides:
+            console.print(f"  {', '.join(provides)}")
