@@ -276,7 +276,7 @@ class TestReindexCases:
     def test_reindex_finds_case_toml_files(self, tmp_path: Path) -> None:
         # Create a case directory with case.toml
         case_dir = tmp_path / "cases" / "alpha=1" / "beta=2"
-        lembas_dir = case_dir / "lembas"
+        lembas_dir = case_dir / ".lembas"
         lembas_dir.mkdir(parents=True)
 
         case_toml = lembas_dir / "case.toml"
@@ -302,7 +302,7 @@ class TestReindexCases:
         # Create multiple case directories
         for i in range(3):
             case_dir = tmp_path / "cases" / f"value={i}"
-            lembas_dir = case_dir / "lembas"
+            lembas_dir = case_dir / ".lembas"
             lembas_dir.mkdir(parents=True)
 
             case_toml = lembas_dir / "case.toml"
@@ -323,7 +323,7 @@ class TestReindexCases:
     def test_reindex_skips_invalid_toml(self, tmp_path: Path) -> None:
         # Create a case with invalid toml
         case_dir = tmp_path / "cases" / "bad"
-        lembas_dir = case_dir / "lembas"
+        lembas_dir = case_dir / ".lembas"
         lembas_dir.mkdir(parents=True)
 
         case_toml = lembas_dir / "case.toml"
@@ -331,7 +331,7 @@ class TestReindexCases:
 
         # Create a valid case too
         good_dir = tmp_path / "cases" / "good"
-        good_lembas = good_dir / "lembas"
+        good_lembas = good_dir / ".lembas"
         good_lembas.mkdir(parents=True)
         good_toml = good_lembas / "case.toml"
         good_toml.write_text(
@@ -352,7 +352,7 @@ class TestReindexCases:
     def test_reindex_saves_index_file(self, tmp_path: Path) -> None:
         # Create a case
         case_dir = tmp_path / "cases" / "test"
-        lembas_dir = case_dir / "lembas"
+        lembas_dir = case_dir / ".lembas"
         lembas_dir.mkdir(parents=True)
 
         case_toml = lembas_dir / "case.toml"

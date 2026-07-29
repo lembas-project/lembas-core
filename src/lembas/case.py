@@ -35,8 +35,8 @@ class CaseNotRunError(Exception):
     pass
 
 
-LEMBAS_CASE_TOML_FILENAME = Path("lembas", "case.toml")
-LEMBAS_STATUS_FILENAME = Path("lembas", "status.json")
+LEMBAS_CASE_TOML_FILENAME = Path(".lembas", "case.toml")
+LEMBAS_STATUS_FILENAME = Path(".lembas", "status.json")
 
 TCase = TypeVar("TCase", bound="Case")
 RawCaseStepMethod = Callable[[TCase], None]
