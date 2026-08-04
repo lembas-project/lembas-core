@@ -556,8 +556,8 @@ def handlers_show(
     plugin: Path | None = typer.Option(  # noqa: B008
         None, help="Path to plugin file to load handlers from"
     ),
-    as_json_schema: bool = typer.Option(  # noqa: B008
-        False, "--as-json-schema", help="Output as JSON Schema"
+    as_json: bool = typer.Option(  # noqa: B008
+        False, "--json", help="Output as JSON Schema"
     ),
 ) -> None:
     """Show details of a case handler."""
@@ -574,7 +574,7 @@ def handlers_show(
             f"Handler '{handler_name}' not found. Use 'lembas schema list' to see available handlers."
         ) from err
 
-    if as_json_schema:
+    if as_json:
         schema = extract_handler_schema(handler_cls)
         console.print(json.dumps(schema, indent=2))
         return
