@@ -90,14 +90,12 @@ def load_plugins_from_file(plugin_path: Path) -> None:
 
     """
 
-    print("Loading plugins")
     plugin_path = plugin_path.resolve()
     mod = _load_module_from_path(plugin_path)
 
     for name, obj in mod.__dict__.items():
         if inspect.isclass(obj) and issubclass(obj, Case) and obj != Case:
             registry.add(obj)
-            print(f"Found [bold]{name}[/bold] in {plugin_path}")
 
 
 hookspec = HookspecMarker("lembas")
