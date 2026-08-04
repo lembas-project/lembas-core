@@ -115,7 +115,7 @@ def extract_steps_schema(case_cls: type[Case]) -> list[dict[str, Any]]:
 
             # Get docstring if available
             if value._func.__doc__:
-                step_info["description"] = value._func.__doc__.strip().split("\n")[0]
+                step_info["description"] = value._func.__doc__.strip().splitlines()[0]
 
             # Check if there's a condition (we can't serialize lambdas, but we can flag it)
             # The condition is stored as a callable, check if it's not the default "always true"
@@ -160,7 +160,7 @@ def extract_handler_schema(
     # Get description from docstring
     description = None
     if case_cls.__doc__:
-        description = case_cls.__doc__.strip().split("\n")[0]
+        description = case_cls.__doc__.strip().splitlines()[0]
 
     schema: dict[str, Any] = {
         "title": handler_name,

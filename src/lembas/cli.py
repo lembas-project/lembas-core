@@ -531,7 +531,7 @@ def handlers_list(
     for name, cls in sorted(handlers.items()):
         desc = ""
         if cls.__doc__:
-            desc = cls.__doc__.strip().split("\n")[0]
+            desc = cls.__doc__.strip().splitlines()[0]
         table.add_row(name, desc)
 
     console.print(table)
@@ -575,7 +575,7 @@ def handlers_show(
 
     console.print(f"[bold]{handler_name}[/bold]")
     if handler_cls.__doc__:
-        console.print(f"  {handler_cls.__doc__.strip().split(chr(10))[0]}")
+        console.print(f"  {handler_cls.__doc__.strip().splitlines()[0]}")
     console.print()
 
     # Show inputs
