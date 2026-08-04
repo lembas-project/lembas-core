@@ -572,27 +572,27 @@ def handlers_show(
 
     console.print(f"[bold]{handler_name}[/bold]")
     if summary := handler_cls.get_summary():
-        console.print(f"  {summary}")
+        console.print(f"    {summary}")
     console.print()
 
     # Show inputs
-    console.print("[bold]Inputs:[/bold]")
+    console.print("  [bold]Inputs:[/bold]")
     for value in handler_cls.__dict__.values():
         if isinstance(value, InputParameter):
-            console.print(f"  {value.display_string}")
+            console.print(f"    {value.display_string}")
     console.print()
 
     # Show steps
-    console.print("[bold]Steps:[/bold]")
+    console.print("  [bold]Steps:[/bold]")
     for name, value in handler_cls.__dict__.items():
         if isinstance(value, CaseStep):
             requires = f" (requires: {', '.join(value.requires)})" if value.requires else ""
-            console.print(f"  {name}{requires}")
+            console.print(f"    {name}{requires}")
     console.print()
 
     # Show results
-    console.print("[bold]Results:[/bold]")
+    console.print("  [bold]Results:[/bold]")
     for _method_name, method_func in handler_cls.__dict__.items():
         provides = getattr(method_func, "_provides_results", None)
         if provides:
-            console.print(f"  {', '.join(provides)}")
+            console.print(f"    {', '.join(provides)}")
