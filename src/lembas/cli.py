@@ -508,6 +508,21 @@ def cases_clean(
 # =============================================================================
 
 
+def _load_plugins_for_schema(plugin: Path | None) -> None:
+    """Load plugins for schema commands.
+
+    If --plugin is provided, load from that file.
+    Otherwise, auto-load from lembas.toml [local-plugins] if present.
+    """
+    if plugin:
+        console.print(f"Loading handlers from {plugin}")
+        load_plugins_from_file(plugin)
+    elif get_lembas_manifest_path().exists():
+        from lembas import load_local_plugins
+
+        load_local_plugins()
+
+
 @schema_app.command("list")
 def handlers_list(
     plugin: Path | None = typer.Option(  # noqa: B008
@@ -515,9 +530,7 @@ def handlers_list(
     ),
 ) -> None:
     """List available case handlers."""
-    if plugin:
-        console.print(f"Loading handlers from {plugin}")
-        load_plugins_from_file(plugin)
+    _load_plugins_for_schema(plugin)
 
     handlers = registry.get_all()
     if not handlers:
@@ -552,9 +565,7 @@ def handlers_show(
 
     from lembas.schema import extract_handler_schema
 
-    if plugin:
-        console.print(f"Loading handlers from {plugin}")
-        load_plugins_from_file(plugin)
+    _load_plugins_for_schema(plugin)
 
     try:
         handler_cls = registry.get(handler_name)
