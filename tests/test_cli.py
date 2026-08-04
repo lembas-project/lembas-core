@@ -410,13 +410,13 @@ class TestSchemaShowCommand:
         assert "Steps:" in result.stdout
         assert "set_has_been_run" in result.stdout
 
-    def test_schema_show_json(
-        self, invoke_cli: CLIInvoker, plugin_module_path: Path
-    ) -> None:
+    def test_schema_show_json(self, invoke_cli: CLIInvoker, plugin_module_path: Path) -> None:
         """Outputs valid JSON Schema with --json flag."""
         import json
 
-        result = invoke_cli("schema", "show", "MyCase", "--plugin", str(plugin_module_path), "--json")
+        result = invoke_cli(
+            "schema", "show", "MyCase", "--plugin", str(plugin_module_path), "--json"
+        )
         assert result.exit_code == 0
 
         # Should be valid JSON
@@ -432,7 +432,9 @@ class TestSchemaShowCommand:
         """JSON Schema includes input parameter bounds."""
         import json
 
-        result = invoke_cli("schema", "show", "MyCase", "--plugin", str(plugin_module_path), "--json")
+        result = invoke_cli(
+            "schema", "show", "MyCase", "--plugin", str(plugin_module_path), "--json"
+        )
         schema = json.loads(result.stdout)
 
         my_param = schema["inputs"]["properties"]["my_param"]
@@ -444,7 +446,9 @@ class TestSchemaShowCommand:
         self, invoke_cli: CLIInvoker, plugin_module_path: Path
     ) -> None:
         """JSON output is compact (no indentation) when not a TTY (e.g., piped to jq)."""
-        result = invoke_cli("schema", "show", "MyCase", "--plugin", str(plugin_module_path), "--json")
+        result = invoke_cli(
+            "schema", "show", "MyCase", "--plugin", str(plugin_module_path), "--json"
+        )
         assert result.exit_code == 0
 
         # CliRunner is not a TTY, so output should be compact (single line)
