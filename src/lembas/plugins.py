@@ -10,8 +10,11 @@ from types import ModuleType
 from pluggy import HookimplMarker
 from pluggy import HookspecMarker
 from pluggy import PluginManager
+from rich.console import Console
 
 from lembas import Case
+
+stderr = Console(stderr=True)
 
 __all__ = ["register", "registry", "load_plugins_from_file", "CaseHandlerNotFound"]
 
@@ -95,6 +98,7 @@ def load_plugins_from_file(plugin_path: Path) -> None:
     for name, obj in mod.__dict__.items():
         if inspect.isclass(obj) and issubclass(obj, Case) and obj != Case:
             registry.add(obj)
+            stderr.print(f"Loaded [bold]{name}[/bold] from {plugin_path}")
 
 
 hookspec = HookspecMarker("lembas")
