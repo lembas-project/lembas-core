@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from lembas.case import Case
 
 SCHEMA_VERSION = "v1"
-SCHEMA_BASE_URL = "https://lembas.fly.dev/schemas"
+SCHEMA_BASE_URL = "https://lembas.matt-kramer.com/schemas"
 
 
 def _get_git_ref() -> dict[str, Any] | None:
