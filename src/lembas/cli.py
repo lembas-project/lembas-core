@@ -28,9 +28,9 @@ app = typer.Typer(add_completion=False)
 cases_app = typer.Typer(help="Manage study cases")
 app.add_typer(cases_app, name="cases")
 
-# Subcommand group for plugin/handler management
-handlers_app = typer.Typer(help="Manage case handlers")
-app.add_typer(handlers_app, name="handlers")
+# Subcommand group for schema management
+schema_app = typer.Typer(help="Manage case handler schemas")
+app.add_typer(schema_app, name="schema")
 
 
 class Okay(typer.Exit):
@@ -504,11 +504,11 @@ def cases_clean(
 
 
 # =============================================================================
-# Handlers commands
+# Schema commands
 # =============================================================================
 
 
-@handlers_app.command("list")
+@schema_app.command("list")
 def handlers_list(
     plugin: Path | None = typer.Option(  # noqa: B008
         None, help="Path to plugin file to load handlers from"
@@ -537,7 +537,7 @@ def handlers_list(
     console.print(table)
 
 
-@handlers_app.command("show")
+@schema_app.command("show")
 def handlers_show(
     handler_name: str = typer.Argument(help="Name of the handler to show"),  # noqa: B008
     plugin: Path | None = typer.Option(  # noqa: B008
@@ -560,7 +560,7 @@ def handlers_show(
         handler_cls = registry.get(handler_name)
     except CaseHandlerNotFound as err:
         raise Abort(
-            f"Handler '{handler_name}' not found. Use 'lembas handlers list' to see available handlers."
+            f"Handler '{handler_name}' not found. Use 'lembas schema list' to see available handlers."
         ) from err
 
     if as_json_schema:
