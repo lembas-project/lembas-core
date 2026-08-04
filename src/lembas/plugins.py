@@ -10,7 +10,6 @@ from types import ModuleType
 from pluggy import HookimplMarker
 from pluggy import HookspecMarker
 from pluggy import PluginManager
-from rich import print
 
 from lembas import Case
 
