@@ -549,6 +549,7 @@ def handlers_show(
 ) -> None:
     """Show details of a case handler."""
     import json
+    import sys
 
     from lembas import load_local_plugins
     from lembas.schema import extract_handler_schema
@@ -564,7 +565,8 @@ def handlers_show(
 
     if as_json:
         schema = extract_handler_schema(handler_cls)
-        console.print(json.dumps(schema, indent=2))
+        indent = 2 if sys.stdout.isatty() else None
+        print(json.dumps(schema, indent=indent))
         return
 
     # Default: show handler info in a readable format
