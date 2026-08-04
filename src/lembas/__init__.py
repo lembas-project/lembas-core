@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from lembas._version import __version__
 from lembas.case import Case
 from lembas.case import CaseList
@@ -24,11 +26,16 @@ __all__ = [
 ]
 
 
-def load_local_plugins() -> None:
-    """Load local plugins defined in [local-plugins] section of lembas.toml.
+def load_local_plugins(plugin: Path | None = None) -> None:
+    """Load plugins for the current project.
 
-    Call this at the start of run.py to load any plugins defined locally in the project.
+    If a plugin path is provided, load from that file directly.
+    Otherwise, load plugins defined in [local-plugins] section of lembas.toml.
+
     After calling, case handlers will be available in the registry.
+
+    Args:
+        plugin: Optional path to a plugin file to load instead of using lembas.toml.
 
     Example:
         from lembas import load_local_plugins, registry
@@ -37,6 +44,10 @@ def load_local_plugins() -> None:
         PlaningPlateCase = registry.get("PlaningPlateCase")
     """
     from pathlib import Path
+
+    if plugin is not None:
+        load_plugins_from_file(plugin)
+        return
 
     from lembas.manifest import load_lembas_manifest
 

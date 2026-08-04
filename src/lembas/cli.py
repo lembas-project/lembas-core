@@ -18,7 +18,6 @@ from lembas.manifest import is_pixi_manifest_stale
 from lembas.manifest import load_lembas_manifest
 from lembas.manifest import write_pixi_manifest
 from lembas.plugins import CaseHandlerNotFound
-from lembas.plugins import load_plugins_from_file
 from lembas.plugins import registry
 
 console = Console()
@@ -347,8 +346,9 @@ def run_case(
     plugin: Path | None = None,
 ) -> None:
     """Run a single case of a given case handler type (low-level)."""
-    if plugin is not None:
-        load_plugins_from_file(plugin)
+    from lembas import load_local_plugins
+
+    load_local_plugins(plugin)
 
     try:
         class_ = registry.get(case_handler_name)
@@ -508,21 +508,6 @@ def cases_clean(
 # =============================================================================
 
 
-def _load_plugins_for_schema(plugin: Path | None) -> None:
-    """Load plugins for schema commands.
-
-    If --plugin is provided, load from that file.
-    Otherwise, auto-load from lembas.toml [local-plugins] if present.
-    """
-    if plugin:
-        console.print(f"Loading handlers from {plugin}")
-        load_plugins_from_file(plugin)
-    elif get_lembas_manifest_path().exists():
-        from lembas import load_local_plugins
-
-        load_local_plugins()
-
-
 @schema_app.command("list")
 def handlers_list(
     plugin: Path | None = typer.Option(  # noqa: B008
@@ -530,7 +515,9 @@ def handlers_list(
     ),
 ) -> None:
     """List available case handlers."""
-    _load_plugins_for_schema(plugin)
+    from lembas import load_local_plugins
+
+    load_local_plugins(plugin)
 
     handlers = registry.get_all()
     if not handlers:
@@ -563,9 +550,10 @@ def handlers_show(
     """Show details of a case handler."""
     import json
 
+    from lembas import load_local_plugins
     from lembas.schema import extract_handler_schema
 
-    _load_plugins_for_schema(plugin)
+    load_local_plugins(plugin)
 
     try:
         handler_cls = registry.get(handler_name)
