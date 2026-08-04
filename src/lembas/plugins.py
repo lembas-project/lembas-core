@@ -10,9 +10,11 @@ from types import ModuleType
 from pluggy import HookimplMarker
 from pluggy import HookspecMarker
 from pluggy import PluginManager
-from rich import print
+from rich.console import Console
 
 from lembas import Case
+
+stderr = Console(stderr=True)
 
 __all__ = ["register", "registry", "load_plugins_from_file", "CaseHandlerNotFound"]
 
@@ -51,6 +53,10 @@ class CaseHandlerRegistry:
         """Clear the case handler registry."""
         self._registry.clear()
 
+    def get_all(self) -> dict[str, type[Case]]:
+        """Return all registered case handlers."""
+        return dict(self._registry)
+
 
 registry = CaseHandlerRegistry()
 
@@ -86,14 +92,13 @@ def load_plugins_from_file(plugin_path: Path) -> None:
 
     """
 
-    print("Loading plugins")
     plugin_path = plugin_path.resolve()
     mod = _load_module_from_path(plugin_path)
 
     for name, obj in mod.__dict__.items():
         if inspect.isclass(obj) and issubclass(obj, Case) and obj != Case:
             registry.add(obj)
-            print(f"Found [bold]{name}[/bold] in {plugin_path}")
+            stderr.print(f"Loaded [bold]{name}[/bold] from {plugin_path}")
 
 
 hookspec = HookspecMarker("lembas")

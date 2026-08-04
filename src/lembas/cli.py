@@ -18,7 +18,6 @@ from lembas.manifest import is_pixi_manifest_stale
 from lembas.manifest import load_lembas_manifest
 from lembas.manifest import write_pixi_manifest
 from lembas.plugins import CaseHandlerNotFound
-from lembas.plugins import load_plugins_from_file
 from lembas.plugins import registry
 
 console = Console()
@@ -27,6 +26,10 @@ app = typer.Typer(add_completion=False)
 # Subcommand group for case management
 cases_app = typer.Typer(help="Manage study cases")
 app.add_typer(cases_app, name="cases")
+
+# Subcommand group for schema management
+schema_app = typer.Typer(help="Manage case handler schemas")
+app.add_typer(schema_app, name="schema")
 
 
 class Okay(typer.Exit):
@@ -343,8 +346,9 @@ def run_case(
     plugin: Path | None = None,
 ) -> None:
     """Run a single case of a given case handler type (low-level)."""
-    if plugin is not None:
-        load_plugins_from_file(plugin)
+    from lembas import load_local_plugins
+
+    load_local_plugins(plugin)
 
     try:
         class_ = registry.get(case_handler_name)
@@ -497,3 +501,98 @@ def cases_clean(
     console.print(
         f"[green]Cleaned index:[/green] removed {len(result.stale_entries)} stale entries."
     )
+
+
+# =============================================================================
+# Schema commands
+# =============================================================================
+
+
+@schema_app.command("list")
+def handlers_list(
+    plugin: Path | None = typer.Option(  # noqa: B008
+        None, help="Path to plugin file to load handlers from"
+    ),
+) -> None:
+    """List available case handlers."""
+    from lembas import load_local_plugins
+
+    load_local_plugins(plugin)
+
+    handlers = registry.get_all()
+    if not handlers:
+        console.print("No handlers registered.")
+        return
+
+    table = Table(title="Available Case Handlers")
+    table.add_column("Handler", style="cyan")
+    table.add_column("Description")
+
+    for name, cls in sorted(handlers.items()):
+        table.add_row(name, cls.get_summary() or "")
+
+    console.print(table)
+
+
+@schema_app.command("show")
+def handlers_show(
+    handler_name: str = typer.Argument(help="Name of the handler to show"),  # noqa: B008
+    plugin: Path | None = typer.Option(  # noqa: B008
+        None, help="Path to plugin file to load handlers from"
+    ),
+    as_json: bool = typer.Option(  # noqa: B008
+        False, "--json", help="Output as JSON Schema"
+    ),
+) -> None:
+    """Show details of a case handler."""
+    import json
+    import sys
+
+    from lembas import load_local_plugins
+    from lembas.schema import extract_handler_schema
+
+    load_local_plugins(plugin)
+
+    try:
+        handler_cls = registry.get(handler_name)
+    except CaseHandlerNotFound as err:
+        raise Abort(
+            f"Handler '{handler_name}' not found. Use 'lembas schema list' to see available handlers."
+        ) from err
+
+    if as_json:
+        schema = extract_handler_schema(handler_cls)
+        indent = 2 if sys.stdout.isatty() else None
+        print(json.dumps(schema, indent=indent))
+        return
+
+    # Default: show handler info in a readable format
+    from lembas.case import CaseStep
+    from lembas.param import InputParameter
+
+    console.print(f"[bold]{handler_name}[/bold]")
+    if summary := handler_cls.get_summary():
+        console.print(f"    {summary}")
+    console.print()
+
+    # Show inputs
+    console.print("  [bold]Inputs:[/bold]")
+    for value in handler_cls.__dict__.values():
+        if isinstance(value, InputParameter):
+            console.print(f"    {value.display_string}")
+    console.print()
+
+    # Show steps
+    console.print("  [bold]Steps:[/bold]")
+    for name, value in handler_cls.__dict__.items():
+        if isinstance(value, CaseStep):
+            requires = f" (requires: {', '.join(value.requires)})" if value.requires else ""
+            console.print(f"    {name}{requires}")
+    console.print()
+
+    # Show results
+    console.print("  [bold]Results:[/bold]")
+    for _method_name, method_func in handler_cls.__dict__.items():
+        provides = getattr(method_func, "_provides_results", None)
+        if provides:
+            console.print(f"    {', '.join(provides)}")

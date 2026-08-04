@@ -39,6 +39,15 @@ LEMBAS_CASE_TOML_FILENAME = Path(".lembas", "case.toml")
 LEMBAS_STATUS_FILENAME = Path(".lembas", "status.json")
 
 TCase = TypeVar("TCase", bound="Case")
+
+
+def _get_docstring_summary(obj: Any) -> str | None:
+    """Return the first line of an object's docstring, or None if no docstring."""
+    if obj.__doc__:
+        return obj.__doc__.strip().splitlines()[0]
+    return None
+
+
 RawCaseStepMethod = Callable[[TCase], None]
 
 
@@ -58,6 +67,11 @@ class CaseStep:
     def name(self) -> str:
         """The name of the case step."""
         return self._func.__name__
+
+    @property
+    def summary(self) -> str | None:
+        """First line of the step's docstring, or None."""
+        return _get_docstring_summary(self._func)
 
     @staticmethod
     def _validate_condition(
@@ -138,6 +152,11 @@ class Case:
         mod = inspect.getmodule(cls)
         mod_prefix = mod.__name__ + "." if mod is not None else ""
         return mod_prefix + cls.__qualname__
+
+    @classmethod
+    def get_summary(cls) -> str | None:
+        """First line of the Case class's docstring, or None."""
+        return _get_docstring_summary(cls)
 
     @cached_property
     def id(self) -> str:

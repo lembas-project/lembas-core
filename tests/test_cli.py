@@ -358,3 +358,105 @@ class TestCasesReindexCommand:
         # Verify index file was created
         index_file = run_path / ".lembas" / "cases.json"
         assert index_file.exists()
+
+
+class TestSchemaListCommand:
+    """Tests for `lembas schema list` command."""
+
+    def test_schema_list_empty(self, invoke_cli: CLIInvoker) -> None:
+        """With no plugins loaded, shows no handlers."""
+        result = invoke_cli("schema", "list")
+        assert result.exit_code == 0
+        assert "No handlers registered" in result.stdout
+
+    def test_schema_list_with_plugin(
+        self, invoke_cli: CLIInvoker, plugin_module_path: Path
+    ) -> None:
+        """Lists handlers from a plugin file."""
+        result = invoke_cli("schema", "list", "--plugin", str(plugin_module_path))
+        assert result.exit_code == 0
+        assert "MyCase" in result.stdout
+
+    def test_schema_list_from_lembas_toml(
+        self, invoke_cli: CLIInvoker, run_path: Path, plugin_module_path: Path
+    ) -> None:
+        """Auto-loads handlers from [local-plugins] in lembas.toml."""
+        lembas_toml = run_path / "lembas.toml"
+        lembas_toml.write_text(f'[local-plugins]\nplugin = "{plugin_module_path.name}"\n')
+
+        result = invoke_cli("schema", "list")
+        assert result.exit_code == 0
+        assert "MyCase" in result.stdout
+
+
+class TestSchemaShowCommand:
+    """Tests for `lembas schema show` command."""
+
+    def test_schema_show_not_found(self, invoke_cli: CLIInvoker) -> None:
+        """Shows error when handler not found."""
+        result = invoke_cli("schema", "show", "NonexistentCase")
+        assert result.exit_code == 1
+        assert "not found" in result.stdout
+
+    def test_schema_show_human_readable(
+        self, invoke_cli: CLIInvoker, plugin_module_path: Path
+    ) -> None:
+        """Shows handler details in human-readable format."""
+        result = invoke_cli("schema", "show", "MyCase", "--plugin", str(plugin_module_path))
+        assert result.exit_code == 0
+        assert "MyCase" in result.stdout
+        assert "Inputs:" in result.stdout
+        assert "my_param" in result.stdout
+        assert "Steps:" in result.stdout
+        assert "set_has_been_run" in result.stdout
+
+    def test_schema_show_json(self, invoke_cli: CLIInvoker, plugin_module_path: Path) -> None:
+        """Outputs valid JSON Schema with --json flag."""
+        import json
+
+        result = invoke_cli(
+            "schema", "show", "MyCase", "--plugin", str(plugin_module_path), "--json"
+        )
+        assert result.exit_code == 0
+
+        # Should be valid JSON
+        schema = json.loads(result.stdout)
+        assert schema["title"] == "MyCase"
+        assert "inputs" in schema
+        assert "steps" in schema
+        assert "x-lembas-fingerprint" in schema
+
+    def test_schema_show_json_has_input_bounds(
+        self, invoke_cli: CLIInvoker, plugin_module_path: Path
+    ) -> None:
+        """JSON Schema includes input parameter bounds."""
+        import json
+
+        result = invoke_cli(
+            "schema", "show", "MyCase", "--plugin", str(plugin_module_path), "--json"
+        )
+        schema = json.loads(result.stdout)
+
+        my_param = schema["inputs"]["properties"]["my_param"]
+        assert my_param["type"] == "number"
+        assert my_param["minimum"] == 2.0
+        assert my_param["maximum"] == 5.0
+
+    def test_schema_show_json_compact_when_not_tty(
+        self, invoke_cli: CLIInvoker, plugin_module_path: Path
+    ) -> None:
+        """JSON output is compact (no indentation) when not a TTY (e.g., piped to jq)."""
+        result = invoke_cli(
+            "schema", "show", "MyCase", "--plugin", str(plugin_module_path), "--json"
+        )
+        assert result.exit_code == 0
+
+        # CliRunner is not a TTY, so output should be compact (single line)
+        lines = [line for line in result.stdout.strip().split("\n") if line]
+        assert len(lines) == 1, "JSON should be compact (single line) when piped"
+
+        # Verify it's still valid JSON
+        import json
+
+        schema = json.loads(result.stdout)
+        assert schema["title"] == "MyCase"
