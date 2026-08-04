@@ -46,6 +46,8 @@ def _get_docstring_summary(obj: Any) -> str | None:
     if obj.__doc__:
         return obj.__doc__.strip().splitlines()[0]
     return None
+
+
 RawCaseStepMethod = Callable[[TCase], None]
 
 
