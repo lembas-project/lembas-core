@@ -155,3 +155,16 @@ class InputParameter:
     def is_required(self) -> bool:
         """Whether this parameter is required (has no default)."""
         return self._default == _NoDefault
+
+    @property
+    def type_name(self) -> str:
+        """Human-readable type name."""
+        return self._type.__name__ if self._type else "any"
+
+    @property
+    def display_string(self) -> str:
+        """Human-readable representation for CLI display."""
+        result = f"{self._name}: {self.type_name}"
+        if self._min_value is not None or self._max_value is not None:
+            result += f" [{self._min_value}, {self._max_value}]"
+        return result

@@ -577,13 +577,9 @@ def handlers_show(
 
     # Show inputs
     console.print("[bold]Inputs:[/bold]")
-    for name, value in handler_cls.__dict__.items():
+    for value in handler_cls.__dict__.values():
         if isinstance(value, InputParameter):
-            type_name = value._type.__name__ if value._type else "any"
-            bounds = ""
-            if value._min_value is not None or value._max_value is not None:
-                bounds = f" [{value._min_value}, {value._max_value}]"
-            console.print(f"  {name}: {type_name}{bounds}")
+            console.print(f"  {value.display_string}")
     console.print()
 
     # Show steps
