@@ -529,10 +529,7 @@ def handlers_list(
     table.add_column("Description")
 
     for name, cls in sorted(handlers.items()):
-        desc = ""
-        if cls.__doc__:
-            desc = cls.__doc__.strip().splitlines()[0]
-        table.add_row(name, desc)
+        table.add_row(name, cls.get_summary() or "")
 
     console.print(table)
 
@@ -574,8 +571,8 @@ def handlers_show(
     from lembas.param import InputParameter
 
     console.print(f"[bold]{handler_name}[/bold]")
-    if handler_cls.__doc__:
-        console.print(f"  {handler_cls.__doc__.strip().splitlines()[0]}")
+    if summary := handler_cls.get_summary():
+        console.print(f"  {summary}")
     console.print()
 
     # Show inputs

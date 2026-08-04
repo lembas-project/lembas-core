@@ -18,11 +18,11 @@ from lembas.schema import extract_steps_schema
 class SimpleCase(Case):
     """A simple case for testing schema extraction."""
 
-    velocity: float = InputParameter(type=float, min=0.0, max=100.0)
-    angle: float = InputParameter(type=float, default=45.0)
-    name: str = InputParameter(type=str, default="test")
-    count: int = InputParameter(type=int, default=1)
-    enabled: bool = InputParameter(type=bool, default=True)
+    velocity = InputParameter(type=float, min=0.0, max=100.0)
+    angle = InputParameter(type=float, default=45.0)
+    name = InputParameter(type=str, default="test")
+    count = InputParameter(type=int, default=1)
+    enabled = InputParameter(type=bool, default=True)
 
     @step
     def prepare(self) -> None:
@@ -171,7 +171,7 @@ class TestComputeFingerprint:
 
     def test_fingerprint_changes_with_schema(self) -> None:
         class AnotherCase(Case):
-            x: float = InputParameter(type=float)
+            x = InputParameter(type=float)
 
         fp1 = compute_fingerprint(extract_handler_schema(SimpleCase))
         fp2 = compute_fingerprint(extract_handler_schema(AnotherCase))
