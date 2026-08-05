@@ -601,6 +601,8 @@ def handlers_show(
         provides = getattr(method_func, "_provides_results", None)
         if provides:
             console.print(f"    {', '.join(provides)}")
+
+
 # --- Auth Commands ---
 
 
