@@ -49,7 +49,15 @@ def load_lembas_manifest(project_root: Path | None = None) -> dict[str, Any]:
 
 def compute_manifest_hash(manifest: dict[str, Any]) -> str:
     """Compute SHA-256 hash of the relevant manifest sections for staleness check."""
-    relevant_sections = ["project", "dependencies", "plugins", "tasks", "environments", "study"]
+    relevant_sections = [
+        "project",
+        "dependencies",
+        "pypi-dependencies",
+        "plugins",
+        "tasks",
+        "environments",
+        "study",
+    ]
     relevant = {k: v for k, v in manifest.items() if k in relevant_sections}
     canonical = toml.dumps(relevant)
     return hashlib.sha256(canonical.encode()).hexdigest()
@@ -153,6 +161,10 @@ def synthesize_pixi_manifest(project_root: Path | None = None) -> str:
 
     if tasks_table:
         doc["tasks"] = tasks_table
+
+    # [pypi-dependencies] - pass through if present
+    if pypi_deps := manifest.get("pypi-dependencies"):
+        doc["pypi-dependencies"] = pypi_deps
 
     # [environments] - pass through if present
     if environments := manifest.get("environments"):
