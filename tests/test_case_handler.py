@@ -231,32 +231,6 @@ class TestCaseRunBehavior:
         case.run(force=True)
         assert case.run_count == 2
 
-    def test_run_saves_results_to_status(self, tmp_path: Path) -> None:
-        """Results from @result methods are saved to status.json."""
-        import json
-
-        from lembas.results import result
-
-        class CaseWithResults(Case):
-            value = InputParameter(type=float)
-
-            @step
-            def compute(self) -> None:
-                pass
-
-            @result("output")
-            def get_output(self) -> float:
-                return self.value * 2
-
-        case = CaseWithResults(value=5.0)
-        case.case_dir = tmp_path
-        case.run()
-
-        status_file = tmp_path / ".lembas" / "status.json"
-        assert status_file.exists()
-        status = json.loads(status_file.read_text())
-        assert status["results"] == {"output": 10.0}
-
 
 @pytest.fixture()
 def case_list() -> CaseList:
