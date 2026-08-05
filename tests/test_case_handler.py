@@ -52,8 +52,10 @@ class MyCase(Case):
 
 
 @pytest.fixture()
-def case() -> MyCase:
-    return MyCase(my_param=3.0, required_param=1.0)
+def case(tmp_path: Path) -> MyCase:
+    c = MyCase(my_param=3.0, required_param=1.0)
+    c.case_dir = tmp_path
+    return c
 
 
 def test_case_parameter_default(case: MyCase) -> None:
@@ -107,16 +109,14 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
     assert case.param_with_default == pytest.approx(5.0)
 
 
-def test_case_step_string_condition(case: MyCase, tmp_path: Path) -> None:
+def test_case_step_string_condition(case: MyCase) -> None:
     """The step with a simple string condition is run."""
-    case.case_dir = tmp_path
     case.run()
     assert case.step_has_been_triggered_by_string
 
 
-def test_case_step_string_condition_not(case: MyCase, tmp_path: Path) -> None:
+def test_case_step_string_condition_not(case: MyCase) -> None:
     """The step with a string "not" condition is run."""
-    case.case_dir = tmp_path
     case.run()
     assert case.step_has_been_triggered_by_string_not
 
@@ -197,9 +197,8 @@ def test_in_case_dir_changes_and_restores_cwd(case: MyCase, tmp_path: Path) -> N
 class TestCaseRunBehavior:
     """Tests for case run behavior: skipping completed cases/steps and force parameter."""
 
-    def test_run_skips_completed_case(self, case: MyCase, tmp_path: Path) -> None:
+    def test_run_skips_completed_case(self, case: MyCase) -> None:
         """Running a completed case a second time skips execution."""
-        case.case_dir = tmp_path
         case.run()
         assert case.first_step_has_been_run
 
@@ -275,8 +274,7 @@ class TestCaseList:
         case_list.add(case)
         assert case in case_list
 
-    def test_run_all_cases(self, case_list: CaseList, case: MyCase, tmp_path: Path) -> None:
-        case.case_dir = tmp_path
+    def test_run_all_cases(self, case_list: CaseList, case: MyCase) -> None:
         case_list.add(case)
         assert not case.second_step_has_been_run
         case_list.run_all()
