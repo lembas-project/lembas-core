@@ -5,6 +5,20 @@
     "helpers:pinGitHubActionDigestsToSemver",
     "customManagers:githubActionsVersions"
   ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "prefix-dev/pixi",
+      "description": "Upgrade pixi version in GitHub workflows",
+      "fileMatch": [
+        "^\\.github/workflows/[^/]+\\.ya?ml$"
+      ],
+      "matchStrings": [
+        "pixi-version:\\s*(?<currentValue>v[\\d.]+)"
+      ]
+    }
+  ],
   "pre-commit": {
     "enabled": true
   }
