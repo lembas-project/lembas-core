@@ -208,6 +208,34 @@ class Case:
         status["steps"][step_name] = {"completed_at": datetime.now(UTC).isoformat()}
         self._save_status(status)
 
+    def _extract_results(self) -> dict[str, Any]:
+        """Extract results from all @result-decorated methods.
+
+        Returns a dict mapping result name to value. Values are serialized:
+        - NamedTuple -> dict via _asdict()
+        - Objects with __dict__ -> their __dict__
+        - Other values -> as-is
+        """
+        results_dict: dict[str, Any] = {}
+        for _method_name, method_func in self.__class__.__dict__.items():
+            provides = getattr(method_func, "_provides_results", None)
+            if not provides:
+                continue
+            try:
+                result_val = method_func(self)
+                if not isinstance(result_val, tuple):
+                    result_val = (result_val,)
+                for name, val in zip(provides, result_val, strict=True):
+                    if hasattr(val, "_asdict"):
+                        results_dict[name] = val._asdict()
+                    elif hasattr(val, "__dict__"):
+                        results_dict[name] = val.__dict__
+                    else:
+                        results_dict[name] = val
+            except Exception as e:
+                self.log("Failed to extract result from %s: %s", _method_name, e)
+        return results_dict
+
     @classmethod
     def _get_input_parameters_by_declaration_order(cls) -> list[InputParameter]:
         """Get InputParameters in their declaration order.
@@ -290,31 +318,51 @@ class Case:
         with case_summary_file.open("w") as fp:
             toml.dump(contents, fp)
 
-    def run(self) -> None:
+    def run(self, *, force: bool = False) -> None:
         """Run the case.
 
         If this method is not overridden, the default behavior is to run all the methods
         decorated with ``@step``.
 
+        Args:
+            force: If True, run all steps even if already completed.
+                   If False (default), skip already-completed steps.
         """
         from datetime import datetime
 
         self._check_index_sync()
+
+        # Check if already complete
+        if not force and self.has_run:
+            self.log("Case %s already complete, skipping", self.short_id)
+            return
+
         self.log("Running %s", self)
         self._write_lembas_file()
 
         # Initialize status
         status = self._load_status() or {"steps": {}}
+        completed_steps = set() if force else set(status.get("steps", {}).keys())
+
         status["started_at"] = datetime.now(UTC).isoformat()
         self._save_status(status)
 
         for step_method in self._sorted_steps:
+            if step_method.name in completed_steps:
+                self.log("Step '%s' already complete, skipping", step_method.name)
+                continue
             step_method(self)
             self._mark_step_complete(step_method.name)
 
-        # Mark overall completion
+        # Mark overall completion and save results
         status = self._load_status() or {}
         status["completed_at"] = datetime.now(UTC).isoformat()
+
+        # Extract and save results
+        results_dict = self._extract_results()
+        if results_dict:
+            status["results"] = results_dict
+
         self._save_status(status)
 
     def _check_index_sync(self) -> None:

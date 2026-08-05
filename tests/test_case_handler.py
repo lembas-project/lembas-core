@@ -107,14 +107,16 @@ def test_case_step_condition_is_met(case: MyCase) -> None:
     assert case.param_with_default == pytest.approx(5.0)
 
 
-def test_case_step_string_condition(case: MyCase) -> None:
+def test_case_step_string_condition(case: MyCase, tmp_path: Path) -> None:
     """The step with a simple string condition is run."""
+    case.case_dir = tmp_path
     case.run()
     assert case.step_has_been_triggered_by_string
 
 
-def test_case_step_string_condition_not(case: MyCase) -> None:
+def test_case_step_string_condition_not(case: MyCase, tmp_path: Path) -> None:
     """The step with a string "not" condition is run."""
+    case.case_dir = tmp_path
     case.run()
     assert case.step_has_been_triggered_by_string_not
 
@@ -192,6 +194,71 @@ def test_in_case_dir_changes_and_restores_cwd(case: MyCase, tmp_path: Path) -> N
     assert os.getcwd() == original_cwd
 
 
+class TestCaseRunBehavior:
+    """Tests for case run behavior: skipping completed cases/steps and force parameter."""
+
+    def test_run_skips_completed_case(self, case: MyCase, tmp_path: Path) -> None:
+        """Running a completed case a second time skips execution."""
+        case.case_dir = tmp_path
+        case.run()
+        assert case.first_step_has_been_run
+
+        # Reset the flag and run again
+        case.first_step_has_been_run = False
+        case.run()
+        # Should have been skipped
+        assert not case.first_step_has_been_run
+
+    def test_run_force_reruns_completed_case(self, tmp_path: Path) -> None:
+        """force=True reruns all steps even if already complete."""
+
+        class SimpleCase(Case):
+            run_count = 0
+
+            @step
+            def do_work(self) -> None:
+                self.run_count += 1
+
+        case = SimpleCase()
+        case.case_dir = tmp_path
+        case.run()
+        assert case.run_count == 1
+
+        # Run again without force - should skip
+        case.run()
+        assert case.run_count == 1
+
+        # Run with force - should run again
+        case.run(force=True)
+        assert case.run_count == 2
+
+    def test_run_saves_results_to_status(self, tmp_path: Path) -> None:
+        """Results from @result methods are saved to status.json."""
+        import json
+
+        from lembas.results import result
+
+        class CaseWithResults(Case):
+            value = InputParameter(type=float)
+
+            @step
+            def compute(self) -> None:
+                pass
+
+            @result("output")
+            def get_output(self) -> float:
+                return self.value * 2
+
+        case = CaseWithResults(value=5.0)
+        case.case_dir = tmp_path
+        case.run()
+
+        status_file = tmp_path / ".lembas" / "status.json"
+        assert status_file.exists()
+        status = json.loads(status_file.read_text())
+        assert status["results"] == {"output": 10.0}
+
+
 @pytest.fixture()
 def case_list() -> CaseList:
     return CaseList()
@@ -208,7 +275,8 @@ class TestCaseList:
         case_list.add(case)
         assert case in case_list
 
-    def test_run_all_cases(self, case_list: CaseList, case: MyCase) -> None:
+    def test_run_all_cases(self, case_list: CaseList, case: MyCase, tmp_path: Path) -> None:
+        case.case_dir = tmp_path
         case_list.add(case)
         assert not case.second_step_has_been_run
         case_list.run_all()
