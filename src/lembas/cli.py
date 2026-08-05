@@ -12,6 +12,7 @@ from rich.table import Table
 
 from lembas._version import __version__
 from lembas.manifest import ensure_pixi_manifest
+from lembas.manifest import get_lembas_dir
 from lembas.manifest import get_lembas_manifest_path
 from lembas.manifest import get_pixi_manifest_path
 from lembas.manifest import is_pixi_manifest_stale
@@ -30,6 +31,10 @@ app.add_typer(cases_app, name="cases")
 # Subcommand group for schema management
 schema_app = typer.Typer(help="Manage case handler schemas")
 app.add_typer(schema_app, name="schema")
+
+# Subcommand group for auth
+auth_app = typer.Typer(help="Platform authentication")
+app.add_typer(auth_app, name="auth")
 
 
 class Okay(typer.Exit):
@@ -596,3 +601,471 @@ def handlers_show(
         provides = getattr(method_func, "_provides_results", None)
         if provides:
             console.print(f"    {', '.join(provides)}")
+# --- Auth Commands ---
+
+
+@auth_app.callback(invoke_without_command=True)
+def auth_callback(ctx: typer.Context) -> None:
+    """Platform authentication commands."""
+    if ctx.invoked_subcommand is None:
+        console.print(ctx.get_help())
+
+
+@auth_app.command("login")
+def auth_login(
+    token: str | None = typer.Option(None, "--token", "-t", help="API token"),
+) -> None:
+    """Authenticate with the lembas platform.
+
+    If --token is provided, stores it directly.
+    Otherwise, prompts for interactive login (not yet implemented).
+    """
+    from lembas.platform import store_token
+
+    if token:
+        store_token(token)
+        raise Okay("Token stored successfully")
+
+    raise Abort("Interactive login not yet implemented. Use --token to provide an API token.")
+
+
+@auth_app.command("logout")
+def auth_logout() -> None:
+    """Clear stored authentication credentials."""
+    from lembas.platform import clear_token
+
+    clear_token()
+    raise Okay("Logged out")
+
+
+@auth_app.command("status")
+def auth_status() -> None:
+    """Show current authentication status."""
+    from lembas.platform import PlatformClient
+    from lembas.platform import PlatformConfig
+    from lembas.platform import get_stored_token
+
+    token = get_stored_token()
+    if not token:
+        console.print("[yellow]Not logged in[/yellow]")
+        console.print("Run 'lembas auth login --token <token>' to authenticate.")
+        return
+
+    console.print("[green]Logged in[/green] (token stored)")
+
+    # Try to check server connectivity if manifest has platform config
+    try:
+        manifest = load_lembas_manifest()
+        config = PlatformConfig.from_manifest(manifest)
+        if config:
+            console.print(f"Server: {config.server}")
+            with PlatformClient(config, token) as client:
+                if client.health_check():
+                    console.print("[green]Server reachable[/green]")
+                else:
+                    console.print("[yellow]Server unreachable[/yellow]")
+    except FileNotFoundError:
+        pass
+
+
+@app.command()
+def platforms() -> None:
+    """List configured platform targets.
+
+    Shows all platform targets defined in lembas.toml under [[platform]].
+    The first target is the default when no target is specified.
+    """
+    from lembas.platform import PlatformClient
+    from lembas.platform import PlatformConfig
+    from lembas.platform import get_stored_token
+
+    if not get_lembas_manifest_path().exists():
+        raise Abort("No lembas.toml found. Run 'lembas init' first.")
+
+    manifest = load_lembas_manifest()
+    targets = PlatformConfig.list_targets(manifest)
+
+    if not targets:
+        console.print("[yellow]No platform targets configured[/yellow]")
+        console.print("Add a [[platform]] section to lembas.toml:")
+        console.print()
+        console.print("  [[platform]]")
+        console.print('  name = "default"')
+        console.print('  url = "https://lembas.example.com"')
+        return
+
+    token = get_stored_token()
+
+    table = Table(title="Platform Targets")
+    table.add_column("Name", style="cyan")
+    table.add_column("URL")
+    table.add_column("Status")
+    table.add_column("Default")
+
+    for i, target in enumerate(targets):
+        # Check connectivity
+        status = "[dim]unknown[/dim]"
+        if token:
+            try:
+                with PlatformClient(target, token) as client:
+                    if client.health_check():
+                        status = "[green]reachable[/green]"
+                    else:
+                        status = "[yellow]unreachable[/yellow]"
+            except Exception:
+                status = "[red]error[/red]"
+
+        default = "[green]✓[/green]" if i == 0 else ""
+        table.add_row(target.name, target.server, status, default)
+
+    console.print(table)
+
+
+@app.command()
+def push(
+    target: str = typer.Argument(
+        None, help="Platform target name or URL (default: first in [[platform]])"
+    ),
+    force: bool = typer.Option(False, "--force", "-f", help="Create new study even if one exists"),
+    data: bool = typer.Option(True, "--data/--no-data", help="Push case data (not just metadata)"),
+) -> None:
+    """Push study state to the platform.
+
+    Reads the local case index and status files, then registers the study
+    with all cases and their current status on the configured platform server.
+
+    TARGET can be:
+      - A platform name from [[platform]] in lembas.toml (e.g., "staging")
+      - A direct URL (e.g., "https://lembas.example.com")
+      - Omitted to use the first/default platform
+
+    If a study was previously pushed, updates the existing study. Use --force
+    to create a new study instead.
+
+    By default, also pushes case data (output files). Use --no-data
+    to push only metadata.
+    """
+    import json
+    import logging
+    from datetime import UTC
+    from datetime import datetime
+    from pathlib import Path
+
+    from lembas import load_local_plugins
+    from lembas.index import load_case_index
+    from lembas.platform import PlatformClient
+    from lembas.platform import PlatformConfig
+
+    # Suppress verbose httpx request logging
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    from lembas.study import load_cases
+    from lembas.sync import push_case as sync_push_case
+
+    if not get_lembas_manifest_path().exists():
+        raise Abort("No lembas.toml found. Run 'lembas init' first.")
+
+    manifest = load_lembas_manifest()
+    try:
+        config = PlatformConfig.from_manifest(manifest, target)
+    except ValueError as e:
+        raise Abort(str(e)) from None
+    if not config:
+        raise Abort("No [platform] section in lembas.toml. Add server URL to push.")
+
+    project = manifest.get("project", {})
+    study_name = project.get("name", "unnamed-study")
+    description = project.get("description")
+    tags = project.get("tags", [])
+    plugins_declared = list(manifest.get("plugins", {}).keys())
+
+    # Load local plugins and cases
+    load_local_plugins()
+    cases = load_cases()
+
+    console.print(f"Pushing study [bold]{study_name}[/bold] to {config.server}")
+    console.print(f"  {len(cases)} cases")
+
+    # Build case data with status and results
+    case_data = []
+    index = load_case_index()
+
+    for case in cases:
+        case_id = case.id
+        handler_fqn = f"{case.__class__.__module__}.{case.__class__.__name__}"
+
+        # Find case path from index
+        case_info = index.get(case_id, {})
+        case_path = case_info.get("path")
+
+        status = "pending"
+        duration_seconds = None
+        results_dict = {}
+
+        if case_path:
+            status_file = Path(case_path) / ".lembas" / "status.json"
+            if status_file.exists():
+                with status_file.open() as f:
+                    status_data = json.load(f)
+                if status_data.get("completed_at"):
+                    status = "complete"
+                    # Calculate duration
+                    started = status_data.get("started_at")
+                    completed = status_data.get("completed_at")
+                    if started and completed:
+                        start_dt = datetime.fromisoformat(started)
+                        end_dt = datetime.fromisoformat(completed)
+                        duration_seconds = (end_dt - start_dt).total_seconds()
+
+                    # Load results from status.json (saved during run)
+                    results_dict = status_data.get("results", {})
+            else:
+                status = "pending"
+
+        case_data.append(
+            {
+                "case_id": case_id,
+                "handler_fqn": handler_fqn,
+                "inputs": case.inputs,
+                "status": status,
+                "duration_seconds": duration_seconds,
+                "results": results_dict,
+            }
+        )
+
+    # Push to platform
+    lembas_dir = get_lembas_dir()
+    study_state_path = lembas_dir / "study.json"
+
+    with PlatformClient(config) as client:
+        if not client.health_check():
+            raise Abort(f"Cannot reach server at {config.server}")
+
+        # Build payload
+        payload = {
+            "name": study_name,
+            "description": description,
+            "tags": tags,
+            "plugins_declared": plugins_declared,
+            "cases": [
+                {
+                    "case_id": c["case_id"],
+                    "handler_fqn": c["handler_fqn"],
+                    "inputs": c["inputs"],
+                }
+                for c in case_data
+            ],
+        }
+
+        # Check for existing study state
+        existing_study_id = None
+        if not force and study_state_path.exists():
+            try:
+                state = json.loads(study_state_path.read_text())
+                if state.get("server") == config.server:
+                    existing_study_id = state.get("id")
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        if existing_study_id:
+            # Try to update existing study
+            response = client.client.put(f"/api/studies/{existing_study_id}", json=payload)
+            if response.status_code == 404:
+                # Study deleted on server - create new one
+                console.print(
+                    "  [yellow]Study no longer exists on server, creating new one[/yellow]"
+                )
+                response = client.client.post("/api/studies", json=payload)
+                response.raise_for_status()
+                study = response.json()
+                study_id = study["id"]
+                console.print(f"  Created study: {study_id}")
+            else:
+                response.raise_for_status()
+                study = response.json()
+                study_id = study["id"]
+                console.print(f"  Updated study: {study_id}")
+        else:
+            # Create new study
+            response = client.client.post("/api/studies", json=payload)
+            response.raise_for_status()
+            study = response.json()
+            study_id = study["id"]
+            console.print(f"  Created study: {study_id}")
+
+        # Save study state locally
+        study_state = {
+            "id": study_id,
+            "server": config.server,
+            "pushed_at": datetime.now(UTC).isoformat(),
+            "name": study_name,
+        }
+        study_state_path.write_text(json.dumps(study_state, indent=2))
+
+        # Update each case with status and results
+        complete_count = 0
+        for c in case_data:
+            if c["status"] == "complete":
+                dur = c["duration_seconds"]
+                res = c["results"]
+                client.update_case_status(
+                    study_id,
+                    str(c["case_id"]),
+                    "complete",
+                    duration_seconds=float(dur) if isinstance(dur, (int, float)) else None,
+                    results=res if isinstance(res, dict) else None,
+                )
+                complete_count += 1
+
+        console.print(f"  Updated {complete_count} complete cases with results")
+
+        # Push case data
+        if data and complete_count > 0:
+            console.print("  Syncing case data...")
+
+            total_files = 0
+            total_uploaded = 0
+            total_bytes = 0
+            synced_count = 0
+            skipped_count = 0
+
+            for c in case_data:
+                if c["status"] == "complete":
+                    cid = str(c["case_id"])
+                    case_info = index.get(cid, {})
+                    case_path = case_info.get("path")
+                    if case_path and Path(case_path).exists():
+                        try:
+                            stats = sync_push_case(
+                                client.client,
+                                study_id,
+                                cid,
+                                Path(case_path),
+                            )
+                            total_files += stats["files"]
+                            total_uploaded += stats["uploaded"]
+                            total_bytes += stats["bytes"]
+                            if stats["uploaded"] > 0:
+                                synced_count += 1
+                            else:
+                                skipped_count += 1
+                        except Exception as e:
+                            console.print(f"  [yellow]Could not sync case {cid[:8]}: {e}[/yellow]")
+
+            if total_uploaded > 0:
+                mb = total_bytes / (1024 * 1024)
+                console.print(
+                    f"  Uploaded {total_uploaded} files ({mb:.1f} MB) from {synced_count} cases"
+                )
+            if skipped_count > 0:
+                console.print(f"  {skipped_count} cases already synced")
+
+    raise Okay(f"Pushed to {config.server}/studies/{study_id}")
+
+
+@app.command()
+def pull(
+    target: str = typer.Argument(
+        None, help="Platform target name or URL (default: first in [[platform]])"
+    ),
+    case_id: str | None = typer.Option(None, "--case", "-c", help="Pull a specific case by ID"),
+) -> None:
+    """Pull case data from the platform.
+
+    Downloads case output files from the platform storage.
+    Use --case to pull a specific case, otherwise pulls all cases.
+
+    TARGET can be:
+      - A platform name from [[platform]] in lembas.toml (e.g., "staging")
+      - A direct URL (e.g., "https://lembas.example.com")
+      - Omitted to use the first/default platform
+    """
+    import json
+    import logging
+    from pathlib import Path
+
+    from lembas.index import load_case_index
+    from lembas.platform import PlatformClient
+    from lembas.platform import PlatformConfig
+    from lembas.sync import pull_case as sync_pull_case
+
+    # Suppress verbose httpx request logging
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+    if not get_lembas_manifest_path().exists():
+        raise Abort("No lembas.toml found. Run 'lembas init' first.")
+
+    manifest = load_lembas_manifest()
+    try:
+        config = PlatformConfig.from_manifest(manifest, target)
+    except ValueError as e:
+        raise Abort(str(e)) from None
+    if not config:
+        raise Abort("No [platform] section in lembas.toml.")
+
+    # Get study ID from local state
+    lembas_dir = get_lembas_dir()
+    study_state_path = lembas_dir / "study.json"
+
+    if not study_state_path.exists():
+        raise Abort("No local study state. Run 'lembas push' first or clone from platform.")
+
+    state = json.loads(study_state_path.read_text())
+    study_id = state.get("id")
+    if not study_id:
+        raise Abort("Invalid study state - missing ID.")
+
+    index = load_case_index()
+
+    with PlatformClient(config) as client:
+        if case_id:
+            # Pull specific case
+            case_info = index.get(case_id, {})
+            case_path = case_info.get("path")
+            if not case_path:
+                raise Abort(f"Case {case_id[:8]} not found in local index")
+
+            console.print(f"Pulling case {case_id[:8]}...")
+            try:
+                stats = sync_pull_case(client.client, study_id, case_id, Path(case_path))
+                mb = stats["bytes"] / (1024 * 1024)
+                raise Okay(f"Pulled {stats['downloaded']} files ({mb:.1f} MB)")
+            except Exception as e:
+                raise Abort(f"Pull failed: {e}") from e
+
+        else:
+            # Pull all cases
+            console.print("Pulling all cases...")
+            total_files = 0
+            total_downloaded = 0
+            total_bytes = 0
+            synced_count = 0
+            skipped_count = 0
+
+            for cid, case_info in index.items():
+                case_path = case_info.get("path")
+                if not case_path:
+                    continue
+                try:
+                    stats = sync_pull_case(client.client, study_id, cid, Path(case_path))
+                    total_files += stats["files"]
+                    total_downloaded += stats["downloaded"]
+                    total_bytes += stats["bytes"]
+                    if stats["downloaded"] > 0:
+                        synced_count += 1
+                    else:
+                        skipped_count += 1
+                except Exception as e:
+                    console.print(f"  [yellow]Failed to pull {cid[:8]}: {e}[/yellow]")
+
+            if total_downloaded > 0:
+                mb = total_bytes / (1024 * 1024)
+                console.print(
+                    f"  Downloaded {total_downloaded} files ({mb:.1f} MB) for {synced_count} cases"
+                )
+            if skipped_count > 0:
+                console.print(f"  {skipped_count} cases already up to date")
+            if total_downloaded == 0 and skipped_count > 0:
+                raise Okay("All cases already up to date")
+            raise Okay("Pull complete")
