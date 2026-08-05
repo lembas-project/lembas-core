@@ -290,25 +290,39 @@ class Case:
         with case_summary_file.open("w") as fp:
             toml.dump(contents, fp)
 
-    def run(self) -> None:
+    def run(self, *, force: bool = False) -> None:
         """Run the case.
 
         If this method is not overridden, the default behavior is to run all the methods
         decorated with ``@step``.
 
+        Args:
+            force: If True, run all steps even if already completed.
+                   If False (default), skip already-completed steps.
         """
         from datetime import datetime
 
         self._check_index_sync()
+
+        # Check if already complete
+        if not force and self.has_run:
+            self.log("Case %s already complete, skipping", self.short_id)
+            return
+
         self.log("Running %s", self)
         self._write_lembas_file()
 
         # Initialize status
         status = self._load_status() or {"steps": {}}
+        completed_steps = set() if force else set(status.get("steps", {}).keys())
+
         status["started_at"] = datetime.now(UTC).isoformat()
         self._save_status(status)
 
         for step_method in self._sorted_steps:
+            if step_method.name in completed_steps:
+                self.log("Step '%s' already complete, skipping", step_method.name)
+                continue
             step_method(self)
             self._mark_step_complete(step_method.name)
 

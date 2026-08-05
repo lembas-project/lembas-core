@@ -52,8 +52,10 @@ class MyCase(Case):
 
 
 @pytest.fixture()
-def case() -> MyCase:
-    return MyCase(my_param=3.0, required_param=1.0)
+def case(tmp_path: Path) -> MyCase:
+    c = MyCase(my_param=3.0, required_param=1.0)
+    c.case_dir = tmp_path
+    return c
 
 
 def test_case_parameter_default(case: MyCase) -> None:
@@ -190,6 +192,44 @@ def test_in_case_dir_changes_and_restores_cwd(case: MyCase, tmp_path: Path) -> N
         assert os.getcwd() == str(case.case_dir)
 
     assert os.getcwd() == original_cwd
+
+
+class TestCaseRunBehavior:
+    """Tests for case run behavior: skipping completed cases/steps and force parameter."""
+
+    def test_run_skips_completed_case(self, case: MyCase) -> None:
+        """Running a completed case a second time skips execution."""
+        case.run()
+        assert case.first_step_has_been_run
+
+        # Reset the flag and run again
+        case.first_step_has_been_run = False
+        case.run()
+        # Should have been skipped
+        assert not case.first_step_has_been_run
+
+    def test_run_force_reruns_completed_case(self, tmp_path: Path) -> None:
+        """force=True reruns all steps even if already complete."""
+
+        class SimpleCase(Case):
+            run_count = 0
+
+            @step
+            def do_work(self) -> None:
+                self.run_count += 1
+
+        case = SimpleCase()
+        case.case_dir = tmp_path
+        case.run()
+        assert case.run_count == 1
+
+        # Run again without force - should skip
+        case.run()
+        assert case.run_count == 1
+
+        # Run with force - should run again
+        case.run(force=True)
+        assert case.run_count == 2
 
 
 @pytest.fixture()
