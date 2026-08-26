@@ -826,7 +826,7 @@ def push(
 
         case_data.append(
             {
-                "case_id": case_id,
+                "id": case_id,
                 "handler_fqn": handler_fqn,
                 "inputs": case.inputs,
                 "status": status,
@@ -851,7 +851,7 @@ def push(
             "plugins_declared": plugins_declared,
             "cases": [
                 {
-                    "case_id": c["case_id"],
+                    "id": c["id"],
                     "handler_fqn": c["handler_fqn"],
                     "inputs": c["inputs"],
                 }
@@ -912,7 +912,7 @@ def push(
                 res = c["results"]
                 client.update_case_status(
                     study_id,
-                    str(c["case_id"]),
+                    str(c["id"]),
                     "complete",
                     duration_seconds=float(dur) if isinstance(dur, (int, float)) else None,
                     results=res if isinstance(res, dict) else None,
@@ -933,7 +933,7 @@ def push(
 
             for c in case_data:
                 if c["status"] == "complete":
-                    cid = str(c["case_id"])
+                    cid = str(c["id"])
                     case_info = index.get(cid, {})
                     case_path = case_info.get("path")
                     if case_path and Path(case_path).exists():
