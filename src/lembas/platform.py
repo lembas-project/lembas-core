@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -17,6 +18,7 @@ log = logging.getLogger(__name__)
 
 CREDENTIALS_PATH = Path.home() / ".lembas" / "credentials"
 SERVICE_NAME = "lembas"
+ENV_VAR = "LEMBAS_API_TOKEN"
 
 
 @dataclass
@@ -50,12 +52,13 @@ class PlatformConfig:
             PlatformConfig or None if no platform is configured.
         """
         platform = manifest.get("platform")
-        if not platform:
-            return None
 
-        # Check if target is a URL (ad-hoc platform)
+        # Check if target is a URL (ad-hoc platform — no manifest entry needed)
         if target and (target.startswith("http://") or target.startswith("https://")):
             return cls(name="adhoc", server=target)
+
+        if not platform:
+            return None
 
         if not isinstance(platform, list) or not platform:
             return None
@@ -91,7 +94,15 @@ class PlatformConfig:
 
 
 def get_stored_token() -> str | None:
-    """Retrieve stored token from keyring or fallback file."""
+    """Retrieve token using the resolution order:
+
+    1. ``LEMBAS_API_TOKEN`` environment variable
+    2. System keyring
+    3. Fallback credentials file (``~/.lembas/credentials``)
+    """
+    if token := os.environ.get(ENV_VAR):
+        return token
+
     try:
         import keyring
 
@@ -184,7 +195,7 @@ class PlatformClient:
             "plugins_declared": plugins_declared or [],
             "cases": [
                 {
-                    "case_id": case.id,
+                    "id": case.id,
                     "handler_fqn": f"{case.__class__.__module__}.{case.__class__.__name__}",
                     "inputs": case.inputs,
                 }
