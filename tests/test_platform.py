@@ -35,9 +35,7 @@ def test_get_stored_token_keyring(monkeypatch: pytest.MonkeyPatch) -> None:
         assert get_stored_token() == "lb_v1_keyring_token"
 
 
-def test_get_stored_token_file_fallback(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_get_stored_token_file_fallback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Falls back to credentials file when keyring unavailable."""
     monkeypatch.delenv(ENV_VAR, raising=False)
     creds = tmp_path / "credentials"
