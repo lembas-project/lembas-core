@@ -644,9 +644,7 @@ def auth_login(
         if platforms:
             target_server = platforms[0].get("url")
     if not target_server:
-        raise Abort(
-            "No server URL configured. Pass --server or add [[platform]] to lembas.toml."
-        )
+        raise Abort("No server URL configured. Pass --server or add [[platform]] to lembas.toml.")
 
     # Start device flow
     console.print(f"Connecting to {target_server}...")
@@ -994,4 +992,3 @@ def push(
         console.print(f"  Updated {complete_count} complete cases with results")
 
     raise Okay(f"Pushed to {config.server}/studies/{study_id}")
-
