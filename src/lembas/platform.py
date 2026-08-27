@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
+import time
+import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -15,6 +17,9 @@ if TYPE_CHECKING:
     from lembas.case import Case
 
 log = logging.getLogger(__name__)
+
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 CREDENTIALS_PATH = Path.home() / ".lembas" / "credentials"
 SERVICE_NAME = "lembas"
@@ -144,6 +149,85 @@ def clear_token() -> None:
 
     if CREDENTIALS_PATH.exists():
         CREDENTIALS_PATH.unlink()
+
+
+class DeviceLoginError(Exception):
+    """Raised when device flow login fails."""
+
+
+def device_login(server: str, token_name: str = "cli") -> str:
+    """Run a full device authorization flow against the lembas server.
+
+    Opens the browser automatically. Blocks until approved or expired.
+    Stores the resulting token and returns the token name.
+
+    Raises DeviceLoginError on any failure.
+    """
+    try:
+        resp = httpx.get(f"{server}/api/auth/device")
+        resp.raise_for_status()
+    except Exception as e:
+        raise DeviceLoginError(f"Could not reach server: {e}") from e
+
+    data = resp.json()
+    user_code = data["user_code"]
+    device_code = data["device_code"]
+    verification_uri = data["verification_uri"]
+    interval = data.get("interval", 5)
+    expires_in = data.get("expires_in", 300)
+
+    return _poll_device_flow(server, device_code, user_code, verification_uri, interval, expires_in, token_name)
+
+
+def _poll_device_flow(
+    server: str,
+    device_code: str,
+    user_code: str,
+    verification_uri: str,
+    interval: int,
+    expires_in: int,
+    token_name: str,
+) -> str:
+    """Display the user code, open the browser, and poll until approved."""
+    from rich.console import Console
+
+    console = Console()
+    console.print(f"\n  Your code: [bold green]{user_code}[/bold green]")
+    console.print(f"  Open:      [link={verification_uri}]{verification_uri}[/link]\n")
+    webbrowser.open(verification_uri)
+
+    console.print("Waiting for authorization", end="")
+    deadline = time.time() + expires_in
+
+    while time.time() < deadline:
+        time.sleep(interval)
+        console.print(".", end="", highlight=False)
+
+        try:
+            poll_resp = httpx.post(
+                f"{server}/api/auth/device/token",
+                json={"device_code": device_code, "token_name": token_name},
+            )
+        except Exception:
+            continue
+
+        if poll_resp.status_code == 201:
+            result = poll_resp.json()
+            store_token(result["token"])
+            console.print()
+            return result.get("token_name") or token_name
+
+        if poll_resp.status_code == 200:
+            if poll_resp.json().get("error") == "slow_down":
+                new_interval = poll_resp.json().get("interval")
+                if new_interval:
+                    interval = new_interval
+            continue
+
+        raise DeviceLoginError(f"Authorization failed: {poll_resp.text}")
+
+    console.print()
+    raise DeviceLoginError("Device flow expired. Run 'lembas auth login' again.")
 
 
 class PlatformClient:

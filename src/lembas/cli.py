@@ -623,22 +623,14 @@ def auth_login(
 
     If --token is provided, stores it directly. Otherwise, initiates a device authorization flow: opens the browser for GitHub login and waits for approval.
     """
-    import logging
-    import time
-    import webbrowser
-
-    import httpx
-
+    from lembas.platform import DeviceLoginError
+    from lembas.platform import device_login
     from lembas.platform import store_token
-
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     if token:
         store_token(token)
         raise Okay("Token stored successfully")
 
-    # Resolve server URL
     target_server = server
     if not target_server and get_lembas_manifest_path().exists():
         manifest = load_lembas_manifest()
@@ -648,61 +640,12 @@ def auth_login(
     if not target_server:
         raise Abort("No server URL configured. Pass --server or add [[platform]] to lembas.toml.")
 
-    # Start device flow
     console.print(f"Connecting to {target_server}...")
     try:
-        resp = httpx.get(f"{target_server}/api/auth/device")
-        resp.raise_for_status()
-    except Exception as e:
-        raise Abort(f"Could not reach server: {e}") from e
-
-    data = resp.json()
-    user_code = data["user_code"]
-    device_code = data["device_code"]
-    verification_uri = data["verification_uri"]
-    interval = data.get("interval", 5)
-    expires_in = data.get("expires_in", 300)
-
-    console.print(f"\n  Your code: [bold green]{user_code}[/bold green]")
-    console.print(f"  Open:      [link={verification_uri}]{verification_uri}[/link]\n")
-
-    webbrowser.open(verification_uri)
-
-    console.print("Waiting for authorization", end="")
-    deadline = time.time() + expires_in
-
-    while time.time() < deadline:
-        time.sleep(interval)
-        console.print(".", end="", highlight=False)
-
-        try:
-            poll_resp = httpx.post(
-                f"{target_server}/api/auth/device/token",
-                json={"device_code": device_code, "token_name": token_name},
-            )
-        except Exception:
-            continue
-
-        if poll_resp.status_code == 201:
-            result = poll_resp.json()
-            store_token(result["token"])
-            console.print()
-            raise Okay(f"Logged in. Token '{result.get('token_name', 'cli')}' stored.")
-
-        if poll_resp.status_code == 200:
-            error = poll_resp.json().get("error", "")
-            if error == "slow_down":
-                new_interval = poll_resp.json().get("interval")
-                if new_interval:
-                    interval = new_interval
-            # authorization_pending or slow_down — keep polling
-            continue
-
-        # Any other status is a hard failure
-        raise Abort(f"Authorization failed: {poll_resp.text}")
-
-    console.print()
-    raise Abort("Device flow expired. Run 'lembas auth login' again.")
+        stored_name = device_login(target_server, token_name=token_name or "cli")
+        raise Okay(f"Logged in. Token '{stored_name}' stored.")
+    except DeviceLoginError as e:
+        raise Abort(str(e)) from e
 
 
 @auth_app.command("logout")
