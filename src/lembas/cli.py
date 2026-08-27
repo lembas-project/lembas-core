@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import contextlib
 import json
-import logging
 import os
 import subprocess
 import sys
@@ -19,6 +18,7 @@ from rich.console import Console
 from rich.table import Table
 
 from lembas import load_local_plugins
+from lembas import logging as _lembas_logging  # noqa: F401 — imported for log config side effects
 from lembas._version import __version__
 from lembas.case import CaseStep
 from lembas.index import CASE_TOML_PATH
@@ -766,10 +766,6 @@ def push(
     By default, also pushes case data (output files). Use --no-data
     to push only metadata.
     """
-
-    # Suppress verbose httpx request logging
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     if not get_lembas_manifest_path().exists():
         raise Abort("No lembas.toml found. Run 'lembas init' first.")

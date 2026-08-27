@@ -18,9 +18,6 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-
 CREDENTIALS_PATH = Path.home() / ".lembas" / "credentials"
 SERVICE_NAME = "lembas"
 ENV_VAR = "LEMBAS_API_TOKEN"
