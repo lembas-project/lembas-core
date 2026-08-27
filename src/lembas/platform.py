@@ -98,6 +98,24 @@ class PlatformConfig:
         ]
 
 
+def resolve_server_url(override: str | None = None) -> str | None:
+    """Return a server URL from an explicit override or the first [[platform]] in lembas.toml.
+
+    Returns None if no URL can be determined.
+    """
+    from lembas.manifest import get_lembas_manifest_path
+    from lembas.manifest import load_lembas_manifest
+
+    if override:
+        return override
+    if get_lembas_manifest_path().exists():
+        manifest = load_lembas_manifest()
+        platforms = manifest.get("platform", [])
+        if platforms:
+            return platforms[0].get("url")
+    return None
+
+
 def get_stored_token() -> str | None:
     """Retrieve token using the resolution order:
 

@@ -625,18 +625,14 @@ def auth_login(
     """
     from lembas.platform import DeviceLoginError
     from lembas.platform import device_login
+    from lembas.platform import resolve_server_url
     from lembas.platform import store_token
 
     if token:
         store_token(token)
         raise Okay("Token stored successfully")
 
-    target_server = server
-    if not target_server and get_lembas_manifest_path().exists():
-        manifest = load_lembas_manifest()
-        platforms = manifest.get("platform", [])
-        if platforms:
-            target_server = platforms[0].get("url")
+    target_server = resolve_server_url(server)
     if not target_server:
         raise Abort("No server URL configured. Pass --server or add [[platform]] to lembas.toml.")
 
