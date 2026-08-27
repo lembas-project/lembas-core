@@ -50,5 +50,4 @@ def lembas_case_handlers() -> Iterator[type[Case]]:
     """
     yield PlaningPlateCase
     yield HydrostaticDamCase
-
 ```
