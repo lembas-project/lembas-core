@@ -182,7 +182,7 @@ def device_login(server: str, token_name: str = "cli") -> str:
     Raises DeviceLoginError on any failure.
     """
     try:
-        resp = httpx.get(f"{server}/api/auth/device")
+        resp = httpx.get(f"{server}/api/auth/device", timeout=30.0)
         resp.raise_for_status()
     except Exception as e:
         raise DeviceLoginError(f"Could not reach server: {e}") from e
@@ -227,6 +227,7 @@ def _poll_device_flow(
             poll_resp = httpx.post(
                 f"{server}/api/auth/device/token",
                 json={"device_code": device_code, "token_name": token_name},
+                timeout=30.0,
             )
         except Exception:
             continue

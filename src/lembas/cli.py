@@ -664,6 +664,7 @@ def auth_logout() -> None:
                 httpx.delete(
                     f"{server}/api/tokens/current",
                     headers={"Authorization": f"Bearer {token}"},
+                    timeout=10.0,
                 )
 
     clear_token()
