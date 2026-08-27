@@ -176,7 +176,9 @@ def device_login(server: str, token_name: str = "cli") -> str:
     interval = data.get("interval", 5)
     expires_in = data.get("expires_in", 300)
 
-    return _poll_device_flow(server, device_code, user_code, verification_uri, interval, expires_in, token_name)
+    return _poll_device_flow(
+        server, device_code, user_code, verification_uri, interval, expires_in, token_name
+    )
 
 
 def _poll_device_flow(
