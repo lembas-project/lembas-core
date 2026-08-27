@@ -28,6 +28,8 @@ requirements:
     - pydantic >=2.0
     - pyyaml >=6.0
     - tomlkit >=0.12
+    - httpx >=0.25
+    - keyring >=24.0
 
 tests:
   - python:

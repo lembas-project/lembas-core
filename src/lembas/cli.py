@@ -2,23 +2,53 @@
 
 from __future__ import annotations
 
+import contextlib
+import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
+import httpx
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from lembas import load_local_plugins
+from lembas import logging as _lembas_logging  # noqa: F401 — imported for log config side effects
 from lembas._version import __version__
+from lembas.case import CaseStep
+from lembas.index import CASE_TOML_PATH
+from lembas.index import CaseStatus
+from lembas.index import clean_index
+from lembas.index import ensure_index_fresh
+from lembas.index import gather_case_info
+from lembas.index import load_case_index
+from lembas.index import load_specified_cases
+from lembas.index import reindex_cases
+from lembas.index import save_case_index
 from lembas.manifest import ensure_pixi_manifest
+from lembas.manifest import get_lembas_dir
 from lembas.manifest import get_lembas_manifest_path
 from lembas.manifest import get_pixi_manifest_path
 from lembas.manifest import is_pixi_manifest_stale
 from lembas.manifest import load_lembas_manifest
 from lembas.manifest import write_pixi_manifest
+from lembas.param import InputParameter
+from lembas.platform import DeviceLoginError
+from lembas.platform import PlatformClient
+from lembas.platform import PlatformConfig
+from lembas.platform import clear_token
+from lembas.platform import collect_case_data
+from lembas.platform import device_login
+from lembas.platform import get_stored_token
+from lembas.platform import resolve_server_url
+from lembas.platform import store_token
 from lembas.plugins import CaseHandlerNotFound
 from lembas.plugins import registry
+from lembas.schema import extract_handler_schema
+from lembas.study import load_cases
 
 console = Console()
 app = typer.Typer(add_completion=False)
@@ -30,6 +60,10 @@ app.add_typer(cases_app, name="cases")
 # Subcommand group for schema management
 schema_app = typer.Typer(help="Manage case handler schemas")
 app.add_typer(schema_app, name="schema")
+
+# Subcommand group for auth
+auth_app = typer.Typer(help="Platform authentication")
+app.add_typer(auth_app, name="auth")
 
 
 class Okay(typer.Exit):
@@ -145,12 +179,10 @@ run = "python run.py"
 
 from __future__ import annotations
 
-
 def main() -> None:
     """Main entry point."""
     print("Hello from lembas!")
     # TODO: Add your study logic here
-
 
 if __name__ == "__main__":
     main()
@@ -226,7 +258,6 @@ def shell() -> None:
     pixi_path = get_pixi_manifest_path()
 
     # Use exec to replace the current process
-    import os
 
     os.execlp("pixi", "pixi", "--manifest-path", str(pixi_path), "shell")
 
@@ -324,8 +355,6 @@ def status() -> None:
 @app.command("_run-cases", hidden=True)
 def run_cases_internal() -> None:
     """Internal command to run study cases (called by synthesized pixi task)."""
-    from lembas import load_local_plugins
-    from lembas.study import load_cases
 
     load_local_plugins()
     cases = load_cases()
@@ -346,7 +375,6 @@ def run_case(
     plugin: Path | None = None,
 ) -> None:
     """Run a single case of a given case handler type (low-level)."""
-    from lembas import load_local_plugins
 
     load_local_plugins(plugin)
 
@@ -370,7 +398,6 @@ def run_case(
 
 def _print_cases_table(cases: list) -> None:
     """Print a table of cases with styled status and notes."""
-    from lembas.index import CaseStatus
 
     status_styles = {
         CaseStatus.COMPLETE: "[green]complete[/green]",
@@ -410,10 +437,6 @@ def cases_list(
     By default shows all cases from cases.yaml and any that have been run.
     Use --pending or --complete to filter (mutually exclusive).
     """
-    from lembas.index import CaseStatus
-    from lembas.index import ensure_index_fresh
-    from lembas.index import gather_case_info
-    from lembas.index import load_specified_cases
 
     if pending and complete:
         raise Abort("--pending and --complete are mutually exclusive")
@@ -452,8 +475,6 @@ def cases_reindex() -> None:
     Scans for case.toml files, extracts handler and inputs,
     recomputes case IDs, and rebuilds .lembas/cases.json.
     """
-    from lembas.index import CASE_TOML_PATH
-    from lembas.index import reindex_cases
 
     console.print(f"Scanning cases/**/{CASE_TOML_PATH}...")
     index = reindex_cases()
@@ -469,9 +490,6 @@ def cases_clean(
     Removes index entries where the path no longer exists.
     Shows what will be cleaned and prompts for confirmation unless --force is used.
     """
-    from lembas.index import clean_index
-    from lembas.index import load_case_index
-    from lembas.index import save_case_index
 
     if not load_case_index():
         console.print("Index is empty, nothing to clean.")
@@ -515,7 +533,6 @@ def handlers_list(
     ),
 ) -> None:
     """List available case handlers."""
-    from lembas import load_local_plugins
 
     load_local_plugins(plugin)
 
@@ -545,11 +562,6 @@ def handlers_show(
     ),
 ) -> None:
     """Show details of a case handler."""
-    import json
-    import sys
-
-    from lembas import load_local_plugins
-    from lembas.schema import extract_handler_schema
 
     load_local_plugins(plugin)
 
@@ -567,8 +579,6 @@ def handlers_show(
         return
 
     # Default: show handler info in a readable format
-    from lembas.case import CaseStep
-    from lembas.param import InputParameter
 
     console.print(f"[bold]{handler_name}[/bold]")
     if summary := handler_cls.get_summary():
@@ -596,3 +606,215 @@ def handlers_show(
         provides = getattr(method_func, "_provides_results", None)
         if provides:
             console.print(f"    {', '.join(provides)}")
+
+
+# --- Auth Commands ---
+
+
+@auth_app.callback(invoke_without_command=True)
+def auth_callback(ctx: typer.Context) -> None:
+    """Platform authentication commands."""
+    if ctx.invoked_subcommand is None:
+        console.print(ctx.get_help())
+
+
+@auth_app.command("login")
+def auth_login(
+    token: str | None = typer.Option(None, "--token", "-t", help="API token (skip device flow)"),
+    server: str | None = typer.Option(None, "--server", "-s", help="Platform server URL"),
+    token_name: str | None = typer.Option("cli", "--name", "-n", help="Label for the token"),
+) -> None:
+    """Authenticate with the lembas platform.
+
+    If --token is provided, stores it directly. Otherwise, initiates a device authorization flow: opens the browser for GitHub login and waits for approval.
+    """
+
+    if token:
+        store_token(token)
+        raise Okay("Token stored successfully")
+
+    target_server = resolve_server_url(server)
+    if not target_server:
+        raise Abort("No server URL configured. Pass --server or add [[platform]] to lembas.toml.")
+
+    console.print(f"Connecting to {target_server}...")
+    try:
+        stored_name = device_login(target_server, token_name=token_name or "cli")
+        raise Okay(f"Logged in. Token '{stored_name}' stored.")
+    except DeviceLoginError as e:
+        raise Abort(str(e)) from e
+
+
+@auth_app.command("logout")
+def auth_logout() -> None:
+    """Clear stored authentication credentials and revoke the token on the server."""
+
+    token = get_stored_token()
+
+    if token:
+        server = resolve_server_url()
+        if server:
+            with contextlib.suppress(Exception):
+                httpx.delete(
+                    f"{server}/api/tokens/current",
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=10.0,
+                )
+
+    clear_token()
+    raise Okay("Logged out")
+
+
+@auth_app.command("status")
+def auth_status() -> None:
+    """Show current authentication status."""
+
+    token = get_stored_token()
+    if not token:
+        console.print("[yellow]Not logged in[/yellow]")
+        console.print("Run 'lembas auth login --token <token>' to authenticate.")
+        return
+
+    console.print("[green]Logged in[/green] (token stored)")
+
+    # Try to check server connectivity if manifest has platform config
+    try:
+        manifest = load_lembas_manifest()
+        config = PlatformConfig.from_manifest(manifest)
+        if config:
+            console.print(f"Server: {config.server}")
+            with PlatformClient(config, token) as client:
+                if client.health_check():
+                    console.print("[green]Server reachable[/green]")
+                else:
+                    console.print("[yellow]Server unreachable[/yellow]")
+    except FileNotFoundError:
+        pass
+
+
+@app.command()
+def platforms() -> None:
+    """List configured platform targets.
+
+    Shows all platform targets defined in lembas.toml under [[platform]].
+    The first target is the default when no target is specified.
+    """
+
+    if not get_lembas_manifest_path().exists():
+        raise Abort("No lembas.toml found. Run 'lembas init' first.")
+
+    manifest = load_lembas_manifest()
+    targets = PlatformConfig.list_targets(manifest)
+
+    if not targets:
+        console.print("[yellow]No platform targets configured[/yellow]")
+        console.print("Add a [[platform]] section to lembas.toml:")
+        console.print()
+        console.print("  [[platform]]")
+        console.print('  name = "default"')
+        console.print('  url = "https://lembas.example.com"')
+        return
+
+    token = get_stored_token()
+
+    table = Table(title="Platform Targets")
+    table.add_column("Name", style="cyan")
+    table.add_column("URL")
+    table.add_column("Status")
+    table.add_column("Default")
+
+    for i, target in enumerate(targets):
+        # Check connectivity
+        status = "[dim]unknown[/dim]"
+        if token:
+            try:
+                with PlatformClient(target, token) as client:
+                    if client.health_check():
+                        status = "[green]reachable[/green]"
+                    else:
+                        status = "[yellow]unreachable[/yellow]"
+            except Exception:
+                status = "[red]error[/red]"
+
+        default = "[green]✓[/green]" if i == 0 else ""
+        table.add_row(target.name, target.server, status, default)
+
+    console.print(table)
+
+
+@app.command()
+def push(
+    target: str = typer.Argument(
+        None, help="Platform target name or URL (default: first in [[platform]])"
+    ),
+    force: bool = typer.Option(False, "--force", "-f", help="Create new study even if one exists"),
+) -> None:
+    """Push study state to the platform.
+
+    Reads the local case index and status files, then registers the study
+    with all cases and their current status on the configured platform server.
+
+    TARGET can be:
+      - A platform name from [[platform]] in lembas.toml (e.g., "staging")
+      - A direct URL (e.g., "https://lembas.example.com")
+      - Omitted to use the first/default platform
+
+    If a study was previously pushed, updates the existing study. Use --force
+    to create a new study instead.
+    """
+    if not get_lembas_manifest_path().exists():
+        raise Abort("No lembas.toml found. Run 'lembas init' first.")
+
+    manifest = load_lembas_manifest()
+    try:
+        config = PlatformConfig.from_manifest(manifest, target)
+    except ValueError as e:
+        raise Abort(str(e)) from None
+    if not config:
+        raise Abort("No [platform] section in lembas.toml. Add server URL to push.")
+
+    project = manifest.get("project", {})
+    study_name = project.get("name", "unnamed-study")
+    description = project.get("description")
+    tags = project.get("tags", [])
+    plugins_declared = list(manifest.get("plugins", {}).keys())
+
+    load_local_plugins()
+    cases = load_cases()
+    index = load_case_index()
+    case_data = collect_case_data(cases, index)
+
+    console.print(f"Pushing study [bold]{study_name}[/bold] to {config.server}")
+    console.print(f"  {len(cases)} cases")
+
+    lembas_dir = get_lembas_dir()
+    study_state_path = lembas_dir / "study.json"
+
+    existing_study_id = None
+    if not force and study_state_path.exists():
+        try:
+            state = json.loads(study_state_path.read_text())
+            if state.get("server") == config.server:
+                existing_study_id = state.get("id")
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    with PlatformClient(config) as client:
+        if not client.health_check():
+            raise Abort(f"Cannot reach server at {config.server}")
+
+        study_id, created = client.push_study(
+            study_name=study_name,
+            description=description,
+            tags=tags,
+            plugins_declared=plugins_declared,
+            case_data=case_data,
+            existing_study_id=existing_study_id,
+            study_state_path=study_state_path,
+        )
+
+    action = "Created" if created else "Updated"
+    complete_count = sum(1 for c in case_data if c.status == "complete")
+    console.print(f"  {action} study: {study_id}")
+    console.print(f"  Updated {complete_count} complete cases with results")
+    raise Okay(f"Pushed to {config.server}/studies/{study_id}")
