@@ -66,6 +66,7 @@ app.add_typer(schema_app, name="schema")
 auth_app = typer.Typer(help="Platform authentication")
 app.add_typer(auth_app, name="auth")
 
+
 class Okay(typer.Exit):
     """Prints an optional message to the console, before cleanly exiting."""
 
@@ -74,6 +75,7 @@ class Okay(typer.Exit):
             console.print(m, style="green")
         super().__init__(*args, **kwargs)
 
+
 class Abort(typer.Abort):
     """Prints an optional message to the console, before aborting with non-zero exit code."""
 
@@ -81,6 +83,7 @@ class Abort(typer.Abort):
         if m := msg.strip():
             console.print(m, style="red")
         super().__init__(*args, **kwargs)
+
 
 def _run_pixi(args: list[str]) -> int:
     """Run pixi with the synthesized manifest, returning exit code."""
@@ -93,6 +96,7 @@ def _run_pixi(args: list[str]) -> int:
         cmd = ["pixi", "--manifest-path", str(pixi_path)]
     result = subprocess.run(cmd, check=False)
     return result.returncode
+
 
 @app.callback(invoke_without_command=True)
 def main(
@@ -134,6 +138,7 @@ def main(
 
         exit_code = _run_pixi(["run", task_name, *task_args])
         raise typer.Exit(exit_code)
+
 
 @app.command()
 def init(
@@ -221,6 +226,7 @@ test = "pytest tests/ -v"
 
     raise Okay(f"Initialized lembas {project_type}: {project_name}")
 
+
 @app.command()
 def install() -> None:
     """Install project dependencies.
@@ -242,6 +248,7 @@ def install() -> None:
     else:
         raise typer.Exit(exit_code)
 
+
 @app.command()
 def shell() -> None:
     """Start a shell with the project environment activated."""
@@ -254,6 +261,7 @@ def shell() -> None:
     # Use exec to replace the current process
 
     os.execlp("pixi", "pixi", "--manifest-path", str(pixi_path), "shell")
+
 
 @app.command("run")
 def run_task(
@@ -284,6 +292,7 @@ def run_task(
     exit_code = _run_pixi(["run", task, *(args or [])])
     raise typer.Exit(exit_code)
 
+
 def _run_study_cases() -> None:
     """Run cases via the synthesized _lembas_run pixi task.
 
@@ -299,6 +308,7 @@ def _run_study_cases() -> None:
     # Run via pixi to ensure we're in the correct environment
     exit_code = _run_pixi(["run", "_lembas_run"])
     raise typer.Exit(exit_code)
+
 
 @app.command()
 def status() -> None:
@@ -342,6 +352,7 @@ def status() -> None:
     else:
         console.print("\n[yellow]⚠ No .lembas/pixi.toml. Run 'lembas install' to create.[/yellow]")
 
+
 @app.command("_run-cases", hidden=True)
 def run_cases_internal() -> None:
     """Internal command to run study cases (called by synthesized pixi task)."""
@@ -353,6 +364,7 @@ def run_cases_internal() -> None:
     cases.run_all()
 
     raise Okay(f"Completed {len(cases)} cases")
+
 
 # TODO: Merge this into `lembas run --handler <name>` and deprecate this command.
 # See: https://github.com/lembas-project/lembas-core/issues/180
@@ -384,6 +396,7 @@ def run_case(
 
     raise Okay("Case complete")
 
+
 def _print_cases_table(cases: list) -> None:
     """Print a table of cases with styled status and notes."""
 
@@ -407,11 +420,13 @@ def _print_cases_table(cases: list) -> None:
 
     console.print(table)
 
+
 @cases_app.callback(invoke_without_command=True)
 def cases_callback(ctx: typer.Context) -> None:
     """Manage study cases."""
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
+
 
 @cases_app.command("list")
 def cases_list(
@@ -453,6 +468,7 @@ def cases_list(
 
     _print_cases_table(cases)
 
+
 @cases_app.command("reindex")
 def cases_reindex() -> None:
     """Rebuild index from case.toml files.
@@ -464,6 +480,7 @@ def cases_reindex() -> None:
     console.print(f"Scanning cases/**/{CASE_TOML_PATH}...")
     index = reindex_cases()
     console.print(f"Found {len(index)} cases, rebuilt index.")
+
 
 @cases_app.command("clean")
 def cases_clean(
@@ -504,9 +521,11 @@ def cases_clean(
         f"[green]Cleaned index:[/green] removed {len(result.stale_entries)} stale entries."
     )
 
+
 # =============================================================================
 # Schema commands
 # =============================================================================
+
 
 @schema_app.command("list")
 def handlers_list(
@@ -531,6 +550,7 @@ def handlers_list(
         table.add_row(name, cls.get_summary() or "")
 
     console.print(table)
+
 
 @schema_app.command("show")
 def handlers_show(
@@ -588,13 +608,16 @@ def handlers_show(
         if provides:
             console.print(f"    {', '.join(provides)}")
 
+
 # --- Auth Commands ---
+
 
 @auth_app.callback(invoke_without_command=True)
 def auth_callback(ctx: typer.Context) -> None:
     """Platform authentication commands."""
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
+
 
 @auth_app.command("login")
 def auth_login(
@@ -622,6 +645,7 @@ def auth_login(
     except DeviceLoginError as e:
         raise Abort(str(e)) from e
 
+
 @auth_app.command("logout")
 def auth_logout() -> None:
     """Clear stored authentication credentials and revoke the token on the server."""
@@ -640,6 +664,7 @@ def auth_logout() -> None:
 
     clear_token()
     raise Okay("Logged out")
+
 
 @auth_app.command("status")
 def auth_status() -> None:
@@ -666,6 +691,7 @@ def auth_status() -> None:
                     console.print("[yellow]Server unreachable[/yellow]")
     except FileNotFoundError:
         pass
+
 
 @app.command()
 def platforms() -> None:
@@ -715,6 +741,7 @@ def platforms() -> None:
         table.add_row(target.name, target.server, status, default)
 
     console.print(table)
+
 
 @app.command()
 def push(
