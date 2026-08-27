@@ -615,20 +615,94 @@ def auth_callback(ctx: typer.Context) -> None:
 
 @auth_app.command("login")
 def auth_login(
-    token: str | None = typer.Option(None, "--token", "-t", help="API token"),
+    token: str | None = typer.Option(None, "--token", "-t", help="API token (skip device flow)"),
+    server: str | None = typer.Option(None, "--server", "-s", help="Platform server URL"),
+    token_name: str | None = typer.Option("cli", "--name", "-n", help="Label for the token"),
 ) -> None:
     """Authenticate with the lembas platform.
 
     If --token is provided, stores it directly.
-    Otherwise, prompts for interactive login (not yet implemented).
+    Otherwise, initiates a device authorization flow: opens the browser
+    for GitHub login and waits for approval.
     """
+    import time
+    import webbrowser
+
+    import httpx
+
     from lembas.platform import store_token
 
     if token:
         store_token(token)
         raise Okay("Token stored successfully")
 
-    raise Abort("Interactive login not yet implemented. Use --token to provide an API token.")
+    # Resolve server URL
+    target_server = server
+    if not target_server and get_lembas_manifest_path().exists():
+        manifest = load_lembas_manifest()
+        platforms = manifest.get("platform", [])
+        if platforms:
+            target_server = platforms[0].get("url")
+    if not target_server:
+        raise Abort(
+            "No server URL configured. Pass --server or add [[platform]] to lembas.toml."
+        )
+
+    # Start device flow
+    console.print(f"Connecting to {target_server}...")
+    try:
+        resp = httpx.get(f"{target_server}/api/auth/device")
+        resp.raise_for_status()
+    except Exception as e:
+        raise Abort(f"Could not reach server: {e}") from e
+
+    data = resp.json()
+    user_code = data["user_code"]
+    device_code = data["device_code"]
+    verification_uri = data["verification_uri"]
+    interval = data.get("interval", 5)
+    expires_in = data.get("expires_in", 300)
+
+    console.print(f"\n  Your code: [bold green]{user_code}[/bold green]")
+    console.print(f"  Open:      [link={verification_uri}]{verification_uri}[/link]\n")
+
+    webbrowser.open(verification_uri)
+
+    console.print("Waiting for authorization", end="")
+    deadline = time.time() + expires_in
+
+    while time.time() < deadline:
+        time.sleep(interval)
+        console.print(".", end="", highlight=False)
+
+        try:
+            poll_resp = httpx.post(
+                f"{target_server}/api/auth/device/token",
+                json={"device_code": device_code, "token_name": token_name},
+            )
+        except Exception:
+            continue
+
+        if poll_resp.status_code == 201:
+            result = poll_resp.json()
+            store_token(result["token"])
+            console.print()
+            raise Okay(f"Logged in. Token '{result.get('token_name', 'cli')}' stored.")
+
+        if poll_resp.status_code == 200:
+            error = poll_resp.json().get("error", "")
+            if error == "slow_down":
+                new_interval = poll_resp.json().get("interval")
+                if new_interval:
+                    interval = new_interval
+            # authorization_pending or slow_down — keep polling
+            continue
+
+        # Any other status is a hard failure
+        raise Abort(f"Authorization failed: {poll_resp.text}")
+
+    console.print()
+    raise Abort("Device flow expired. Run 'lembas auth login' again.")
 
 
 @auth_app.command("logout")
@@ -729,7 +803,6 @@ def push(
         None, help="Platform target name or URL (default: first in [[platform]])"
     ),
     force: bool = typer.Option(False, "--force", "-f", help="Create new study even if one exists"),
-    data: bool = typer.Option(True, "--data/--no-data", help="Push case data (not just metadata)"),
 ) -> None:
     """Push study state to the platform.
 
@@ -762,7 +835,6 @@ def push(
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     from lembas.study import load_cases
-    from lembas.sync import push_case as sync_push_case
 
     if not get_lembas_manifest_path().exists():
         raise Abort("No lembas.toml found. Run 'lembas init' first.")
@@ -921,153 +993,5 @@ def push(
 
         console.print(f"  Updated {complete_count} complete cases with results")
 
-        # Push case data
-        if data and complete_count > 0:
-            console.print("  Syncing case data...")
-
-            total_files = 0
-            total_uploaded = 0
-            total_bytes = 0
-            synced_count = 0
-            skipped_count = 0
-
-            for c in case_data:
-                if c["status"] == "complete":
-                    cid = str(c["id"])
-                    case_info = index.get(cid, {})
-                    case_path = case_info.get("path")
-                    if case_path and Path(case_path).exists():
-                        try:
-                            stats = sync_push_case(
-                                client.client,
-                                study_id,
-                                cid,
-                                Path(case_path),
-                            )
-                            total_files += stats["files"]
-                            total_uploaded += stats["uploaded"]
-                            total_bytes += stats["bytes"]
-                            if stats["uploaded"] > 0:
-                                synced_count += 1
-                            else:
-                                skipped_count += 1
-                        except Exception as e:
-                            console.print(f"  [yellow]Could not sync case {cid[:8]}: {e}[/yellow]")
-
-            if total_uploaded > 0:
-                mb = total_bytes / (1024 * 1024)
-                console.print(
-                    f"  Uploaded {total_uploaded} files ({mb:.1f} MB) from {synced_count} cases"
-                )
-            if skipped_count > 0:
-                console.print(f"  {skipped_count} cases already synced")
-
     raise Okay(f"Pushed to {config.server}/studies/{study_id}")
 
-
-@app.command()
-def pull(
-    target: str = typer.Argument(
-        None, help="Platform target name or URL (default: first in [[platform]])"
-    ),
-    case_id: str | None = typer.Option(None, "--case", "-c", help="Pull a specific case by ID"),
-) -> None:
-    """Pull case data from the platform.
-
-    Downloads case output files from the platform storage.
-    Use --case to pull a specific case, otherwise pulls all cases.
-
-    TARGET can be:
-      - A platform name from [[platform]] in lembas.toml (e.g., "staging")
-      - A direct URL (e.g., "https://lembas.example.com")
-      - Omitted to use the first/default platform
-    """
-    import json
-    import logging
-    from pathlib import Path
-
-    from lembas.index import load_case_index
-    from lembas.platform import PlatformClient
-    from lembas.platform import PlatformConfig
-    from lembas.sync import pull_case as sync_pull_case
-
-    # Suppress verbose httpx request logging
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-
-    if not get_lembas_manifest_path().exists():
-        raise Abort("No lembas.toml found. Run 'lembas init' first.")
-
-    manifest = load_lembas_manifest()
-    try:
-        config = PlatformConfig.from_manifest(manifest, target)
-    except ValueError as e:
-        raise Abort(str(e)) from None
-    if not config:
-        raise Abort("No [platform] section in lembas.toml.")
-
-    # Get study ID from local state
-    lembas_dir = get_lembas_dir()
-    study_state_path = lembas_dir / "study.json"
-
-    if not study_state_path.exists():
-        raise Abort("No local study state. Run 'lembas push' first or clone from platform.")
-
-    state = json.loads(study_state_path.read_text())
-    study_id = state.get("id")
-    if not study_id:
-        raise Abort("Invalid study state - missing ID.")
-
-    index = load_case_index()
-
-    with PlatformClient(config) as client:
-        if case_id:
-            # Pull specific case
-            case_info = index.get(case_id, {})
-            case_path = case_info.get("path")
-            if not case_path:
-                raise Abort(f"Case {case_id[:8]} not found in local index")
-
-            console.print(f"Pulling case {case_id[:8]}...")
-            try:
-                stats = sync_pull_case(client.client, study_id, case_id, Path(case_path))
-                mb = stats["bytes"] / (1024 * 1024)
-                raise Okay(f"Pulled {stats['downloaded']} files ({mb:.1f} MB)")
-            except Exception as e:
-                raise Abort(f"Pull failed: {e}") from e
-
-        else:
-            # Pull all cases
-            console.print("Pulling all cases...")
-            total_files = 0
-            total_downloaded = 0
-            total_bytes = 0
-            synced_count = 0
-            skipped_count = 0
-
-            for cid, case_info in index.items():
-                case_path = case_info.get("path")
-                if not case_path:
-                    continue
-                try:
-                    stats = sync_pull_case(client.client, study_id, cid, Path(case_path))
-                    total_files += stats["files"]
-                    total_downloaded += stats["downloaded"]
-                    total_bytes += stats["bytes"]
-                    if stats["downloaded"] > 0:
-                        synced_count += 1
-                    else:
-                        skipped_count += 1
-                except Exception as e:
-                    console.print(f"  [yellow]Failed to pull {cid[:8]}: {e}[/yellow]")
-
-            if total_downloaded > 0:
-                mb = total_bytes / (1024 * 1024)
-                console.print(
-                    f"  Downloaded {total_downloaded} files ({mb:.1f} MB) for {synced_count} cases"
-                )
-            if skipped_count > 0:
-                console.print(f"  {skipped_count} cases already up to date")
-            if total_downloaded == 0 and skipped_count > 0:
-                raise Okay("All cases already up to date")
-            raise Okay("Pull complete")
