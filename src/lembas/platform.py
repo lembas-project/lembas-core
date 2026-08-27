@@ -377,8 +377,7 @@ class PlatformClient:
             "tags": tags,
             "plugins_declared": plugins_declared,
             "cases": [
-                {"id": c.id, "handler_fqn": c.handler_fqn, "inputs": c.inputs}
-                for c in case_data
+                {"id": c.id, "handler_fqn": c.handler_fqn, "inputs": c.inputs} for c in case_data
             ],
         }
 
