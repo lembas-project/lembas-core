@@ -7,8 +7,6 @@ import json
 import os
 import subprocess
 import sys
-from datetime import UTC
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +40,7 @@ from lembas.platform import DeviceLoginError
 from lembas.platform import PlatformClient
 from lembas.platform import PlatformConfig
 from lembas.platform import clear_token
+from lembas.platform import collect_case_data
 from lembas.platform import device_login
 from lembas.platform import get_stored_token
 from lembas.platform import resolve_server_url
@@ -762,11 +761,7 @@ def push(
 
     If a study was previously pushed, updates the existing study. Use --force
     to create a new study instead.
-
-    By default, also pushes case data (output files). Use --no-data
-    to push only metadata.
     """
-
     if not get_lembas_manifest_path().exists():
         raise Abort("No lembas.toml found. Run 'lembas init' first.")
 
@@ -784,144 +779,42 @@ def push(
     tags = project.get("tags", [])
     plugins_declared = list(manifest.get("plugins", {}).keys())
 
-    # Load local plugins and cases
     load_local_plugins()
     cases = load_cases()
+    index = load_case_index()
+    case_data = collect_case_data(cases, index)
 
     console.print(f"Pushing study [bold]{study_name}[/bold] to {config.server}")
     console.print(f"  {len(cases)} cases")
 
-    # Build case data with status and results
-    case_data = []
-    index = load_case_index()
-
-    for case in cases:
-        case_id = case.id
-        handler_fqn = f"{case.__class__.__module__}.{case.__class__.__name__}"
-
-        # Find case path from index
-        case_info = index.get(case_id, {})
-        case_path = case_info.get("path")
-
-        status = "pending"
-        duration_seconds = None
-        results_dict = {}
-
-        if case_path:
-            status_file = Path(case_path) / ".lembas" / "status.json"
-            if status_file.exists():
-                with status_file.open() as f:
-                    status_data = json.load(f)
-                if status_data.get("completed_at"):
-                    status = "complete"
-                    # Calculate duration
-                    started = status_data.get("started_at")
-                    completed = status_data.get("completed_at")
-                    if started and completed:
-                        start_dt = datetime.fromisoformat(started)
-                        end_dt = datetime.fromisoformat(completed)
-                        duration_seconds = (end_dt - start_dt).total_seconds()
-
-                    # Load results from status.json (saved during run)
-                    results_dict = status_data.get("results", {})
-            else:
-                status = "pending"
-
-        case_data.append(
-            {
-                "id": case_id,
-                "handler_fqn": handler_fqn,
-                "inputs": case.inputs,
-                "status": status,
-                "duration_seconds": duration_seconds,
-                "results": results_dict,
-            }
-        )
-
-    # Push to platform
     lembas_dir = get_lembas_dir()
     study_state_path = lembas_dir / "study.json"
+
+    existing_study_id = None
+    if not force and study_state_path.exists():
+        try:
+            state = json.loads(study_state_path.read_text())
+            if state.get("server") == config.server:
+                existing_study_id = state.get("id")
+        except (json.JSONDecodeError, KeyError):
+            pass
 
     with PlatformClient(config) as client:
         if not client.health_check():
             raise Abort(f"Cannot reach server at {config.server}")
 
-        # Build payload
-        payload = {
-            "name": study_name,
-            "description": description,
-            "tags": tags,
-            "plugins_declared": plugins_declared,
-            "cases": [
-                {
-                    "id": c["id"],
-                    "handler_fqn": c["handler_fqn"],
-                    "inputs": c["inputs"],
-                }
-                for c in case_data
-            ],
-        }
+        study_id, created = client.push_study(
+            study_name=study_name,
+            description=description,
+            tags=tags,
+            plugins_declared=plugins_declared,
+            case_data=case_data,
+            existing_study_id=existing_study_id,
+            study_state_path=study_state_path,
+        )
 
-        # Check for existing study state
-        existing_study_id = None
-        if not force and study_state_path.exists():
-            try:
-                state = json.loads(study_state_path.read_text())
-                if state.get("server") == config.server:
-                    existing_study_id = state.get("id")
-            except (json.JSONDecodeError, KeyError):
-                pass
-
-        if existing_study_id:
-            # Try to update existing study
-            response = client.client.put(f"/api/studies/{existing_study_id}", json=payload)
-            if response.status_code == 404:
-                # Study deleted on server - create new one
-                console.print(
-                    "  [yellow]Study no longer exists on server, creating new one[/yellow]"
-                )
-                response = client.client.post("/api/studies", json=payload)
-                response.raise_for_status()
-                study = response.json()
-                study_id = study["id"]
-                console.print(f"  Created study: {study_id}")
-            else:
-                response.raise_for_status()
-                study = response.json()
-                study_id = study["id"]
-                console.print(f"  Updated study: {study_id}")
-        else:
-            # Create new study
-            response = client.client.post("/api/studies", json=payload)
-            response.raise_for_status()
-            study = response.json()
-            study_id = study["id"]
-            console.print(f"  Created study: {study_id}")
-
-        # Save study state locally
-        study_state = {
-            "id": study_id,
-            "server": config.server,
-            "pushed_at": datetime.now(UTC).isoformat(),
-            "name": study_name,
-        }
-        study_state_path.write_text(json.dumps(study_state, indent=2))
-
-        # Update each case with status and results
-        complete_count = 0
-        for c in case_data:
-            if c["status"] == "complete":
-                dur = c["duration_seconds"]
-                res = c["results"]
-                client.update_case_status(
-                    study_id,
-                    str(c["id"]),
-                    "complete",
-                    duration_seconds=float(dur) if isinstance(dur, (int, float)) else None,
-                    results=res if isinstance(res, dict) else None,
-                )
-                complete_count += 1
-
-        console.print(f"  Updated {complete_count} complete cases with results")
-
+    action = "Created" if created else "Updated"
+    complete_count = sum(1 for c in case_data if c.status == "complete")
+    console.print(f"  {action} study: {study_id}")
+    console.print(f"  Updated {complete_count} complete cases with results")
     raise Okay(f"Pushed to {config.server}/studies/{study_id}")

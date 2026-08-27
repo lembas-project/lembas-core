@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import time
 import webbrowser
 from dataclasses import dataclass
+from dataclasses import field
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any
@@ -15,6 +19,7 @@ import httpx
 
 if TYPE_CHECKING:
     from lembas.case import Case
+    from lembas.case import CaseList
 
 log = logging.getLogger(__name__)
 
@@ -349,3 +354,118 @@ class PlatformClient:
             return response.status_code == 200
         except httpx.RequestError:
             return False
+
+    def push_study(
+        self,
+        *,
+        study_name: str,
+        description: str | None,
+        tags: list[str],
+        plugins_declared: list[str],
+        case_data: list[CaseData],
+        existing_study_id: str | None,
+        study_state_path: Path,
+    ) -> tuple[str, bool]:
+        """Register or update a study on the server and update local state.
+
+        Returns (study_id, created) where created is True if a new study was
+        made, False if an existing one was updated.
+        """
+        payload = {
+            "name": study_name,
+            "description": description,
+            "tags": tags,
+            "plugins_declared": plugins_declared,
+            "cases": [
+                {"id": c.id, "handler_fqn": c.handler_fqn, "inputs": c.inputs}
+                for c in case_data
+            ],
+        }
+
+        created = False
+        if existing_study_id:
+            response = self.client.put(f"/api/studies/{existing_study_id}", json=payload)
+            if response.status_code == 404:
+                response = self.client.post("/api/studies", json=payload)
+                response.raise_for_status()
+                created = True
+            else:
+                response.raise_for_status()
+        else:
+            response = self.client.post("/api/studies", json=payload)
+            response.raise_for_status()
+            created = True
+
+        study_id = response.json()["id"]
+
+        state = {
+            "id": study_id,
+            "server": self.config.server,
+            "pushed_at": datetime.now(UTC).isoformat(),
+            "name": study_name,
+        }
+        study_state_path.write_text(json.dumps(state, indent=2))
+
+        for c in case_data:
+            if c.status == "complete":
+                self.update_case_status(
+                    study_id,
+                    c.id,
+                    "complete",
+                    duration_seconds=c.duration_seconds,
+                    results=c.results or None,
+                )
+
+        return study_id, created
+
+
+@dataclass
+class CaseData:
+    """Case metadata collected from local run output for pushing to the server."""
+
+    id: str
+    handler_fqn: str
+    inputs: dict[str, Any]
+    status: str = "pending"
+    duration_seconds: float | None = None
+    results: dict[str, Any] = field(default_factory=dict)
+
+
+def collect_case_data(cases: CaseList[Case], index: dict[str, Any]) -> list[CaseData]:
+    """Read local run output (status.json) for each case and return CaseData records."""
+    result = []
+    for case in cases:
+        case_id = case.id
+        handler_fqn = f"{case.__class__.__module__}.{case.__class__.__name__}"
+        case_info = index.get(case_id, {})
+        case_path = case_info.get("path")
+
+        status = "pending"
+        duration_seconds = None
+        results: dict[str, Any] = {}
+
+        if case_path:
+            status_file = Path(case_path) / ".lembas" / "status.json"
+            if status_file.exists():
+                status_data = json.loads(status_file.read_text())
+                if status_data.get("completed_at"):
+                    status = "complete"
+                    started = status_data.get("started_at")
+                    completed = status_data.get("completed_at")
+                    if started and completed:
+                        start_dt = datetime.fromisoformat(started)
+                        end_dt = datetime.fromisoformat(completed)
+                        duration_seconds = (end_dt - start_dt).total_seconds()
+                    results = status_data.get("results", {})
+
+        result.append(
+            CaseData(
+                id=case_id,
+                handler_fqn=handler_fqn,
+                inputs=case.inputs,
+                status=status,
+                duration_seconds=duration_seconds,
+                results=results,
+            )
+        )
+    return result
