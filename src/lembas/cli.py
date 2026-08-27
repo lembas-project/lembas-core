@@ -621,9 +621,7 @@ def auth_login(
 ) -> None:
     """Authenticate with the lembas platform.
 
-    If --token is provided, stores it directly.
-    Otherwise, initiates a device authorization flow: opens the browser
-    for GitHub login and waits for approval.
+    If --token is provided, stores it directly. Otherwise, initiates a device authorization flow: opens the browser for GitHub login and waits for approval.
     """
     import logging
     import time
