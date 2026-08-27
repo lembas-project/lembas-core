@@ -13,6 +13,7 @@ For example, consider the following case handler:
 ```python
 from lembas import Case, InputParameter, step
 
+
 class HelloCase(Case):
     name = InputParameter(default="Anonymous")
 
@@ -87,20 +88,16 @@ class PlaningPlateCase(Case):
     angle_of_attack = InputParameter(type=float)
 
     @step
-    def create_input_files(self) -> None:
-        ...
+    def create_input_files(self) -> None: ...
 
     @step
-    def generate_mesh(self) -> None:
-        ...
+    def generate_mesh(self) -> None: ...
 
     @step
-    def run_planingfsi(self) -> None:
-        ...
+    def run_planingfsi(self) -> None: ...
 
     @step
-    def post_process_results(self) -> None:
-        ...
+    def post_process_results(self) -> None: ...
 ```
 
 By default, each `step` will be run in the order in which they are listed.
@@ -112,8 +109,7 @@ For example:
 
 ```python
 @step(requires="run_planingfsi")
-def post_process_results(self) -> None:
-    ...
+def post_process_results(self) -> None: ...
 ```
 
 ### Conditional steps
@@ -134,6 +130,5 @@ Thus, the operation is idempotent, i.e. it can be run many times with the same r
 
 ```python
 @step(condition=lambda case: not (case.case_dir / "mesh").exists())
-def generate_mesh(self) -> None:
-    ...
+def generate_mesh(self) -> None: ...
 ```

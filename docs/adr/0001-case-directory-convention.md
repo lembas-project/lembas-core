@@ -27,8 +27,8 @@ froude_num = InputParameter(
     type=float,
     min=0.2,
     max=3.0,
-    path_format=".2f",   # renders as "0.50" not "0.5"
-    short_name="Fr",     # renders as "Fr=0.50" not "froude_num=0.50"
+    path_format=".2f",  # renders as "0.50" not "0.5"
+    short_name="Fr",  # renders as "Fr=0.50" not "froude_num=0.50"
 )
 ```
 
