@@ -2,15 +2,34 @@
 
 from __future__ import annotations
 
+import contextlib
+import json
+import logging
+import os
 import subprocess
+import sys
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import httpx
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from lembas import load_local_plugins
 from lembas._version import __version__
+from lembas.case import CaseStep
+from lembas.index import CASE_TOML_PATH
+from lembas.index import CaseStatus
+from lembas.index import clean_index
+from lembas.index import ensure_index_fresh
+from lembas.index import gather_case_info
+from lembas.index import load_case_index
+from lembas.index import load_specified_cases
+from lembas.index import reindex_cases
+from lembas.index import save_case_index
 from lembas.manifest import ensure_pixi_manifest
 from lembas.manifest import get_lembas_dir
 from lembas.manifest import get_lembas_manifest_path
@@ -18,8 +37,19 @@ from lembas.manifest import get_pixi_manifest_path
 from lembas.manifest import is_pixi_manifest_stale
 from lembas.manifest import load_lembas_manifest
 from lembas.manifest import write_pixi_manifest
+from lembas.param import InputParameter
+from lembas.platform import DeviceLoginError
+from lembas.platform import PlatformClient
+from lembas.platform import PlatformConfig
+from lembas.platform import clear_token
+from lembas.platform import device_login
+from lembas.platform import get_stored_token
+from lembas.platform import resolve_server_url
+from lembas.platform import store_token
 from lembas.plugins import CaseHandlerNotFound
 from lembas.plugins import registry
+from lembas.schema import extract_handler_schema
+from lembas.study import load_cases
 
 console = Console()
 app = typer.Typer(add_completion=False)
@@ -36,7 +66,6 @@ app.add_typer(schema_app, name="schema")
 auth_app = typer.Typer(help="Platform authentication")
 app.add_typer(auth_app, name="auth")
 
-
 class Okay(typer.Exit):
     """Prints an optional message to the console, before cleanly exiting."""
 
@@ -45,7 +74,6 @@ class Okay(typer.Exit):
             console.print(m, style="green")
         super().__init__(*args, **kwargs)
 
-
 class Abort(typer.Abort):
     """Prints an optional message to the console, before aborting with non-zero exit code."""
 
@@ -53,7 +81,6 @@ class Abort(typer.Abort):
         if m := msg.strip():
             console.print(m, style="red")
         super().__init__(*args, **kwargs)
-
 
 def _run_pixi(args: list[str]) -> int:
     """Run pixi with the synthesized manifest, returning exit code."""
@@ -66,7 +93,6 @@ def _run_pixi(args: list[str]) -> int:
         cmd = ["pixi", "--manifest-path", str(pixi_path)]
     result = subprocess.run(cmd, check=False)
     return result.returncode
-
 
 @app.callback(invoke_without_command=True)
 def main(
@@ -109,7 +135,6 @@ def main(
         exit_code = _run_pixi(["run", task_name, *task_args])
         raise typer.Exit(exit_code)
 
-
 @app.command()
 def init(
     name: str | None = typer.Option(None, help="Project name"),
@@ -150,12 +175,10 @@ run = "python run.py"
 
 from __future__ import annotations
 
-
 def main() -> None:
     """Main entry point."""
     print("Hello from lembas!")
     # TODO: Add your study logic here
-
 
 if __name__ == "__main__":
     main()
@@ -198,7 +221,6 @@ test = "pytest tests/ -v"
 
     raise Okay(f"Initialized lembas {project_type}: {project_name}")
 
-
 @app.command()
 def install() -> None:
     """Install project dependencies.
@@ -220,7 +242,6 @@ def install() -> None:
     else:
         raise typer.Exit(exit_code)
 
-
 @app.command()
 def shell() -> None:
     """Start a shell with the project environment activated."""
@@ -231,10 +252,8 @@ def shell() -> None:
     pixi_path = get_pixi_manifest_path()
 
     # Use exec to replace the current process
-    import os
 
     os.execlp("pixi", "pixi", "--manifest-path", str(pixi_path), "shell")
-
 
 @app.command("run")
 def run_task(
@@ -265,7 +284,6 @@ def run_task(
     exit_code = _run_pixi(["run", task, *(args or [])])
     raise typer.Exit(exit_code)
 
-
 def _run_study_cases() -> None:
     """Run cases via the synthesized _lembas_run pixi task.
 
@@ -281,7 +299,6 @@ def _run_study_cases() -> None:
     # Run via pixi to ensure we're in the correct environment
     exit_code = _run_pixi(["run", "_lembas_run"])
     raise typer.Exit(exit_code)
-
 
 @app.command()
 def status() -> None:
@@ -325,12 +342,9 @@ def status() -> None:
     else:
         console.print("\n[yellow]⚠ No .lembas/pixi.toml. Run 'lembas install' to create.[/yellow]")
 
-
 @app.command("_run-cases", hidden=True)
 def run_cases_internal() -> None:
     """Internal command to run study cases (called by synthesized pixi task)."""
-    from lembas import load_local_plugins
-    from lembas.study import load_cases
 
     load_local_plugins()
     cases = load_cases()
@@ -339,7 +353,6 @@ def run_cases_internal() -> None:
     cases.run_all()
 
     raise Okay(f"Completed {len(cases)} cases")
-
 
 # TODO: Merge this into `lembas run --handler <name>` and deprecate this command.
 # See: https://github.com/lembas-project/lembas-core/issues/180
@@ -351,7 +364,6 @@ def run_case(
     plugin: Path | None = None,
 ) -> None:
     """Run a single case of a given case handler type (low-level)."""
-    from lembas import load_local_plugins
 
     load_local_plugins(plugin)
 
@@ -372,10 +384,8 @@ def run_case(
 
     raise Okay("Case complete")
 
-
 def _print_cases_table(cases: list) -> None:
     """Print a table of cases with styled status and notes."""
-    from lembas.index import CaseStatus
 
     status_styles = {
         CaseStatus.COMPLETE: "[green]complete[/green]",
@@ -397,13 +407,11 @@ def _print_cases_table(cases: list) -> None:
 
     console.print(table)
 
-
 @cases_app.callback(invoke_without_command=True)
 def cases_callback(ctx: typer.Context) -> None:
     """Manage study cases."""
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
-
 
 @cases_app.command("list")
 def cases_list(
@@ -415,10 +423,6 @@ def cases_list(
     By default shows all cases from cases.yaml and any that have been run.
     Use --pending or --complete to filter (mutually exclusive).
     """
-    from lembas.index import CaseStatus
-    from lembas.index import ensure_index_fresh
-    from lembas.index import gather_case_info
-    from lembas.index import load_specified_cases
 
     if pending and complete:
         raise Abort("--pending and --complete are mutually exclusive")
@@ -449,7 +453,6 @@ def cases_list(
 
     _print_cases_table(cases)
 
-
 @cases_app.command("reindex")
 def cases_reindex() -> None:
     """Rebuild index from case.toml files.
@@ -457,13 +460,10 @@ def cases_reindex() -> None:
     Scans for case.toml files, extracts handler and inputs,
     recomputes case IDs, and rebuilds .lembas/cases.json.
     """
-    from lembas.index import CASE_TOML_PATH
-    from lembas.index import reindex_cases
 
     console.print(f"Scanning cases/**/{CASE_TOML_PATH}...")
     index = reindex_cases()
     console.print(f"Found {len(index)} cases, rebuilt index.")
-
 
 @cases_app.command("clean")
 def cases_clean(
@@ -474,9 +474,6 @@ def cases_clean(
     Removes index entries where the path no longer exists.
     Shows what will be cleaned and prompts for confirmation unless --force is used.
     """
-    from lembas.index import clean_index
-    from lembas.index import load_case_index
-    from lembas.index import save_case_index
 
     if not load_case_index():
         console.print("Index is empty, nothing to clean.")
@@ -507,11 +504,9 @@ def cases_clean(
         f"[green]Cleaned index:[/green] removed {len(result.stale_entries)} stale entries."
     )
 
-
 # =============================================================================
 # Schema commands
 # =============================================================================
-
 
 @schema_app.command("list")
 def handlers_list(
@@ -520,7 +515,6 @@ def handlers_list(
     ),
 ) -> None:
     """List available case handlers."""
-    from lembas import load_local_plugins
 
     load_local_plugins(plugin)
 
@@ -538,7 +532,6 @@ def handlers_list(
 
     console.print(table)
 
-
 @schema_app.command("show")
 def handlers_show(
     handler_name: str = typer.Argument(help="Name of the handler to show"),  # noqa: B008
@@ -550,11 +543,6 @@ def handlers_show(
     ),
 ) -> None:
     """Show details of a case handler."""
-    import json
-    import sys
-
-    from lembas import load_local_plugins
-    from lembas.schema import extract_handler_schema
 
     load_local_plugins(plugin)
 
@@ -572,8 +560,6 @@ def handlers_show(
         return
 
     # Default: show handler info in a readable format
-    from lembas.case import CaseStep
-    from lembas.param import InputParameter
 
     console.print(f"[bold]{handler_name}[/bold]")
     if summary := handler_cls.get_summary():
@@ -602,16 +588,13 @@ def handlers_show(
         if provides:
             console.print(f"    {', '.join(provides)}")
 
-
 # --- Auth Commands ---
-
 
 @auth_app.callback(invoke_without_command=True)
 def auth_callback(ctx: typer.Context) -> None:
     """Platform authentication commands."""
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
-
 
 @auth_app.command("login")
 def auth_login(
@@ -623,10 +606,6 @@ def auth_login(
 
     If --token is provided, stores it directly. Otherwise, initiates a device authorization flow: opens the browser for GitHub login and waits for approval.
     """
-    from lembas.platform import DeviceLoginError
-    from lembas.platform import device_login
-    from lembas.platform import resolve_server_url
-    from lembas.platform import store_token
 
     if token:
         store_token(token)
@@ -643,17 +622,9 @@ def auth_login(
     except DeviceLoginError as e:
         raise Abort(str(e)) from e
 
-
 @auth_app.command("logout")
 def auth_logout() -> None:
     """Clear stored authentication credentials and revoke the token on the server."""
-    import contextlib
-
-    import httpx
-
-    from lembas.platform import clear_token
-    from lembas.platform import get_stored_token
-    from lembas.platform import resolve_server_url
 
     token = get_stored_token()
 
@@ -670,13 +641,9 @@ def auth_logout() -> None:
     clear_token()
     raise Okay("Logged out")
 
-
 @auth_app.command("status")
 def auth_status() -> None:
     """Show current authentication status."""
-    from lembas.platform import PlatformClient
-    from lembas.platform import PlatformConfig
-    from lembas.platform import get_stored_token
 
     token = get_stored_token()
     if not token:
@@ -700,7 +667,6 @@ def auth_status() -> None:
     except FileNotFoundError:
         pass
 
-
 @app.command()
 def platforms() -> None:
     """List configured platform targets.
@@ -708,9 +674,6 @@ def platforms() -> None:
     Shows all platform targets defined in lembas.toml under [[platform]].
     The first target is the default when no target is specified.
     """
-    from lembas.platform import PlatformClient
-    from lembas.platform import PlatformConfig
-    from lembas.platform import get_stored_token
 
     if not get_lembas_manifest_path().exists():
         raise Abort("No lembas.toml found. Run 'lembas init' first.")
@@ -753,7 +716,6 @@ def platforms() -> None:
 
     console.print(table)
 
-
 @app.command()
 def push(
     target: str = typer.Argument(
@@ -777,21 +739,10 @@ def push(
     By default, also pushes case data (output files). Use --no-data
     to push only metadata.
     """
-    import json
-    import logging
-    from datetime import UTC
-    from datetime import datetime
-    from pathlib import Path
-
-    from lembas import load_local_plugins
-    from lembas.index import load_case_index
-    from lembas.platform import PlatformClient
-    from lembas.platform import PlatformConfig
 
     # Suppress verbose httpx request logging
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
-    from lembas.study import load_cases
 
     if not get_lembas_manifest_path().exists():
         raise Abort("No lembas.toml found. Run 'lembas init' first.")
