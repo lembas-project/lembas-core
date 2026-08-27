@@ -625,12 +625,16 @@ def auth_login(
     Otherwise, initiates a device authorization flow: opens the browser
     for GitHub login and waits for approval.
     """
+    import logging
     import time
     import webbrowser
 
     import httpx
 
     from lembas.platform import store_token
+
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     if token:
         store_token(token)
