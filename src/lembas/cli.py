@@ -646,8 +646,25 @@ def auth_login(
 
 @auth_app.command("logout")
 def auth_logout() -> None:
-    """Clear stored authentication credentials."""
+    """Clear stored authentication credentials and revoke the token on the server."""
+    import contextlib
+
+    import httpx
+
     from lembas.platform import clear_token
+    from lembas.platform import get_stored_token
+    from lembas.platform import resolve_server_url
+
+    token = get_stored_token()
+
+    if token:
+        server = resolve_server_url()
+        if server:
+            with contextlib.suppress(Exception):
+                httpx.delete(
+                    f"{server}/api/tokens/current",
+                    headers={"Authorization": f"Bearer {token}"},
+                )
 
     clear_token()
     raise Okay("Logged out")
