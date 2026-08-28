@@ -443,8 +443,53 @@ class CaseData:
     results: dict[str, Any] = field(default_factory=dict)
 
 
+def _get_result_names(case: Case) -> list[str]:
+    """Return all result names declared on a case class via @result."""
+    names = []
+    for method_func in case.__class__.__dict__.values():
+        provides = getattr(method_func, "_provides_results", None)
+        if provides:
+            names.extend(provides)
+    return names
+
+
+def _read_case_results(case: Case) -> dict[str, Any]:
+    """Read results by calling @result methods directly on the case object.
+
+    Bypasses the has_run check so it works on cases run with older lembas
+    versions that don't write a status.json. Returns an empty dict if any
+    result method raises (missing output files, etc.).
+    """
+    results: dict[str, Any] = {}
+    cls = case.__class__
+    for method_func in cls.__dict__.values():
+        provides = getattr(method_func, "_provides_results", None)
+        if not provides:
+            continue
+        try:
+            vals = method_func(case)
+            if not isinstance(vals, tuple):
+                vals = (vals,)
+            for name, val in zip(provides, vals, strict=False):
+                # Flatten dataclass-like result objects into individual keys
+                if hasattr(val, "__dataclass_fields__"):
+                    for field_name in val.__dataclass_fields__:
+                        results[field_name] = getattr(val, field_name)
+                else:
+                    results[name] = val
+        except Exception:
+            pass
+    return results
+
+
 def collect_case_data(cases: CaseList[Case], index: dict[str, Any]) -> list[CaseData]:
-    """Read local run output (status.json) for each case and return CaseData records."""
+    """Read local run output for each case and return CaseData records.
+
+    Checks for a .lembas/status.json file first (written by lembas run).
+    Falls back to reading results directly from the case output files if the
+    case directory exists but no status file is present (cases run with older
+    versions of lembas).
+    """
     result = []
     for case in cases:
         case_id = case.id
@@ -459,6 +504,7 @@ def collect_case_data(cases: CaseList[Case], index: dict[str, Any]) -> list[Case
         if case_path:
             status_file = Path(case_path) / ".lembas" / "status.json"
             if status_file.exists():
+                # Modern lembas: read from status.json
                 status_data = json.loads(status_file.read_text())
                 if status_data.get("completed_at"):
                     status = "complete"
@@ -469,6 +515,10 @@ def collect_case_data(cases: CaseList[Case], index: dict[str, Any]) -> list[Case
                         end_dt = datetime.fromisoformat(completed)
                         duration_seconds = (end_dt - start_dt).total_seconds()
                     results = status_data.get("results", {})
+            elif case.case_dir.exists():
+                # Older lembas or status.json not written: read results directly
+                status = "complete"
+                results = _read_case_results(case)
 
         result.append(
             CaseData(
