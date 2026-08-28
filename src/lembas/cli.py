@@ -784,8 +784,22 @@ def push(
     index = load_case_index()
     case_data = collect_case_data(cases, index)
 
+    # Extract handler schemas from the unique handler classes in this study
+    seen_handlers: set[str] = set()
+    handler_schemas = []
+    for case in cases:
+        fqn = f"{case.__class__.__module__}.{case.__class__.__name__}"
+        if fqn not in seen_handlers:
+            seen_handlers.add(fqn)
+            try:
+                schema = extract_handler_schema(case.__class__)
+                if schema.get("x-lembas-fingerprint"):
+                    handler_schemas.append(schema)
+            except Exception:
+                pass
+
     console.print(f"Pushing study [bold]{study_name}[/bold] to {config.server}")
-    console.print(f"  {len(cases)} cases")
+    console.print(f"  {len(cases)} cases, {len(handler_schemas)} handler schemas")
 
     lembas_dir = get_lembas_dir()
     study_state_path = lembas_dir / "study.json"
@@ -809,6 +823,7 @@ def push(
             tags=tags,
             plugins_declared=plugins_declared,
             case_data=case_data,
+            handler_schemas=handler_schemas,
             existing_study_id=existing_study_id,
             study_state_path=study_state_path,
         )

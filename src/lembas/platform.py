@@ -363,6 +363,7 @@ class PlatformClient:
         tags: list[str],
         plugins_declared: list[str],
         case_data: list[CaseData],
+        handler_schemas: list[dict[str, Any]] | None = None,
         existing_study_id: str | None,
         study_state_path: Path,
     ) -> tuple[str, bool]:
@@ -371,7 +372,7 @@ class PlatformClient:
         Returns (study_id, created) where created is True if a new study was
         made, False if an existing one was updated.
         """
-        payload = {
+        payload: dict[str, Any] = {
             "name": study_name,
             "description": description,
             "tags": tags,
@@ -381,6 +382,17 @@ class PlatformClient:
                 for c in case_data
             ],
         }
+        if handler_schemas:
+            payload["handlers"] = [
+                {
+                    "fingerprint": s["x-lembas-fingerprint"],
+                    "name": s["title"],
+                    "schema": {k: v for k, v in s.items()
+                               if k not in ("x-lembas-fingerprint",)},
+                }
+                for s in handler_schemas
+                if s.get("x-lembas-fingerprint") and s.get("title")
+            ]
 
         created = False
         if existing_study_id:
