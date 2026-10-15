@@ -4618,7 +4618,7 @@ packages:
 - pypi: ./
   name: lembas
   requires_dist:
-  - pluggy<=1.6.0
+  - pluggy<=1.7.0
   - typer<0.28
   - rich
   - toml
