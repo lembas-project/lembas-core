@@ -3,9 +3,9 @@ python = ">=3.11"
 pyyaml = ">=6.0"
 
 [environments]
-build = {features = ["build"], solve-group = "default"}
-default = {features = ["dev"], solve-group = "default"}
-docs = {features = ["docs"], solve-group = "default"}
+build = { features = ["build"], solve-group = "default" }
+default = { features = ["dev"], solve-group = "default" }
+docs = { features = ["docs"], solve-group = "default" }
 
 [feature.build.dependencies]
 anaconda-client = "*"
@@ -37,7 +37,7 @@ sphinx-autobuild = "*"
 sphinx-autodoc-typehints = "*"
 
 [pypi-dependencies]
-lembas = {path = ".", editable = true}
+lembas = { path = ".", editable = true }
 
 [tasks]
 format = "ruff format src/ tests/"
